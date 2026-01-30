@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/test/guidance_fixed",
+                "${workspaceFolder}/include"
+            ],
+            "defines": [
+                "_DEBUG"
+            ],
+            "cStandard": "c99",
+            "intelliSenseMode": "gcc-x64",
+
+            "configurationProvider": "ms-vscode.makefile-tools"
+        }
+    ],
+    "version": 4
+}

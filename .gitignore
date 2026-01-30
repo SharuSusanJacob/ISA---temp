@@ -1,0 +1,39 @@
+# IDE and Editor files
+.cursorrules
+checklists/
+# Documentation and reference files
+instruction/
+reference code/
+requirement_doc/
+
+# Build directories
+build/
+ISA-OBC-Flight-Software-Embedded-C/build/
+test/*/build/
+test/*/build_*/
+
+# Test outputs and executables
+test/output/
+test/.exe
+test/.o
+
+# SAM-specific builds
+test/dap/build_sam/
+test/dap/build_sam/
+
+*.o
+
+test/guidance/COORDINATE_TRANSFORMS_DOCUMENTATION.md
+
+test/guidance/MATLAB_ALIGNMENT_SUMMARY.md
+
+test/guidance/GUIDANCE_IMPLEMENTATION_PLAN.md
+
+
+test/guidance/GUIDANCE_FIX_SUMMARY.md
+
+test/guidance/GUIDANCE_FIXES_SUMMARY.md
+
+test/guidance/GUIDANCE_IMPLEMENTATION_PLAN.md
+
+test/guidance/MATLAB_ALIGNMENT_SUMMARY.md

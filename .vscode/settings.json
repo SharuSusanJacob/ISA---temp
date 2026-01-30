@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "*.embeddedhtml": "html",
+        "*.html": "html",
+        "*.tsx": "html",
+        "minor.h": "c",
+        "math_utils.h": "c",
+        "float.h": "c",
+        "atmosphere.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
+}
