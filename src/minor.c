@@ -768,7 +768,7 @@ static void magnetometer_attitude_estimation(void)
     deg_to_rad(&theta, systemState.navigationState.pitch_deg); /* Pitch angle */
     deg_to_rad(&psi, systemState.navigationState.yaw_deg);     /* Yaw angle */
 
-    double phi = 0.0; /* Roll angle - will be estimated */ 
+    double phi = 0.0; /* Roll angle - will be estimated */
 
     // to be initialized in init remove from here.
 
@@ -814,7 +814,7 @@ static void magnetometer_attitude_estimation(void)
             (-sin(psi) * mn + cos(psi) * me) * mag_calibrated.z);
 
     /* Wrap roll angle to 2π */
-    mod_double(&p hi, phi1, 2.0 * MATH_PI);
+    mod_double(&phi, phi1, 2.0 * MATH_PI);
 
     /* Update navigation state with estimated attitude */
     systemState.navigationState.attitude_e.roll_rad = phi;
@@ -839,7 +839,7 @@ static void process_navigation(double dt_s)
     /* Read roll rate from gyroscope data */
     rate = fabs(systemState.gyroscopeData.gyro_current.x / (2.0 * MATH_PI));
 
-// add a shared state to save phi, theta , psi TO BE SAVED IN csv
+    // add a shared state to save phi, theta , psi TO BE SAVED IN csv
 
     /* ===== MAGNETOMETER ATTITUDE ESTIMATION - 3 CONSECUTIVE CYCLES CHECK ===== */
     /* Check 1: Rate condition for magnetometer (rate <= 5 rps and gyro integration not active) */
@@ -1707,6 +1707,7 @@ Status_t set_obc_reset(bool isActive)
         systemState.flags.isT0Set = true;
 
         /* Load PEFCS default parameters into system state */
+        
         load_pefcs_defaults();
 
         /* Initialize accelerometer data processing */

@@ -132,9 +132,8 @@ void log_outputs(FILE *output_file, double mission_time,
             gyro_q_rad_s,
             gyro_r_rad_s);
 
-    /* Roll rate in RPS (revolutions per second) */
-    double roll_rate_rps = gyro_p_rad_s / (2.0 * 3.14159265358979323846);
-    fprintf(output_file, "%.6f,", roll_rate_rps);
+    /* Roll rate in RPS (computed by minor_cycle) */
+    fprintf(output_file, "%.6f,", systemState.rollRateFp);
 
     /* Sequencer outputs - Phase flags and timing (cycles) */
     fprintf(output_file, "%d,%d,%d,%d,",
@@ -167,7 +166,7 @@ void print_output_header(FILE *output_file)
     fprintf(output_file, "pos_x,pos_y,pos_z,");
     fprintf(output_file, "vel_x,vel_y,vel_z,");
     fprintf(output_file, "guid_ax,guid_ay,guid_az,");
-    fprintf(output_file, "dap_roll,dap_pitch,dap_yaw,");
+    fprintf(output_file, "dap_c12,dap_c3,dap_c6,dap_c9,");
     fprintf(output_file, "nav_roll,nav_pitch,nav_yaw,");
     fprintf(output_file, "gyro_p,gyro_q,gyro_r,roll_rate_rps,");
     fprintf(output_file, "T0,T1,T2,T3,");
