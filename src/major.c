@@ -611,21 +611,21 @@ void calculate_guidance_acceleration(Vector3_t *accel_body,
     accel_body_limited.z = accel_body_temp.z;
 
     /* === ACCELERATION RATE CLAMPING === */
-    /* Get previous body acceleration from guidance state */
-    static Vector3_t prev_accel = {0.0, 0.0, 0.0}; /* Persistent between calls */
+    /* Use previous body acceleration from guidance state for rate clamping */
+    Vector3_t *prev_accel = &systemState.guidanceState.prevAccel;
 
     /* Calculate delta acceleration */
     Vector3_t delta_accel;
-    vector3_subtract(&delta_accel, &accel_body_limited, &prev_accel);
+    vector3_subtract(&delta_accel, &accel_body_limited, prev_accel);
 
     /* Clamp each component individually */
     /* X-axis clamping */
     if (fabs(delta_accel.x) > GUID_MAX_DELTA_ACC)
     {
         if (delta_accel.x > 0.0)
-            accel_body->x = prev_accel.x + GUID_MAX_DELTA_ACC;
+            accel_body->x = prev_accel->x + GUID_MAX_DELTA_ACC;
         else
-            accel_body->x = prev_accel.x - GUID_MAX_DELTA_ACC;
+            accel_body->x = prev_accel->x - GUID_MAX_DELTA_ACC;
     }
     else
     {
@@ -636,9 +636,9 @@ void calculate_guidance_acceleration(Vector3_t *accel_body,
     if (fabs(delta_accel.y) > GUID_MAX_DELTA_ACC)
     {
         if (delta_accel.y > 0.0)
-            accel_body->y = prev_accel.y + GUID_MAX_DELTA_ACC;
+            accel_body->y = prev_accel->y + GUID_MAX_DELTA_ACC;
         else
-            accel_body->y = prev_accel.y - GUID_MAX_DELTA_ACC;
+            accel_body->y = prev_accel->y - GUID_MAX_DELTA_ACC;
     }
     else
     {
@@ -649,9 +649,9 @@ void calculate_guidance_acceleration(Vector3_t *accel_body,
     if (fabs(delta_accel.z) > GUID_MAX_DELTA_ACC)
     {
         if (delta_accel.z > 0.0)
-            accel_body->z = prev_accel.z + GUID_MAX_DELTA_ACC;
+            accel_body->z = prev_accel->z + GUID_MAX_DELTA_ACC;
         else
-            accel_body->z = prev_accel.z - GUID_MAX_DELTA_ACC;
+            accel_body->z = prev_accel->z - GUID_MAX_DELTA_ACC;
     }
     else
     {
@@ -659,9 +659,9 @@ void calculate_guidance_acceleration(Vector3_t *accel_body,
     }
 
     /* Update previous acceleration for next cycle */
-    prev_accel.x = accel_body->x;
-    prev_accel.y = accel_body->y;
-    prev_accel.z = accel_body->z;
+    prev_accel->x = accel_body->x;
+    prev_accel->y = accel_body->y;
+    prev_accel->z = accel_body->z;
 }
 
 /**

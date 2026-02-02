@@ -147,13 +147,25 @@
 #define PEFCS_DAP_INTEGRATOR_Y_MAX 0.08726
 
 /* ===== SEQUENCER INITIALIZATION PARAMETERS ===== */
+#define PEFCS_SEQ_CONFIRMATION_CYCLES 3U
+#define PEFCS_SEQ_ROLL_RATE_T1_THRESHOLD 7.0
+#define PEFCS_SEQ_ROLL_RATE_T2_THRESHOLD 2.0
 
-/**
- * @brief Roll rate thresholds already defined in minor.h
- * 
- * SEQ_ROLL_RATE_T1_THRESHOLD: 7.0 rps
- * SEQ_ROLL_RATE_T2_THRESHOLD: 2.0 rps
- * These are system constants, not PEFCS-configurable
- */
+/* Sequencer Timing Configuration (in cycles) */
+#define PEFCS_SEQ_T1_WINDOW_IN_TIME 10U
+#define PEFCS_SEQ_T1_WINDOW_OUT_TIME 1400U
+#define PEFCS_SEQ_T2_WINDOW_IN_TIME 10U
+#define PEFCS_SEQ_T2_WINDOW_OUT_TIME 1000U
+#define PEFCS_SEQ_T3_WINDOW_IN_TIME 10U
+#define PEFCS_SEQ_T3_WINDOW_OUT_TIME 4800U /* Updated to 48s limit */
+
+/* Sequencer Timing Configuration (in seconds) */
+#define PEFCS_SEQ_T_PROXIMITY 3.5
+
+/* Sequencer Flag Delays (in cycles) */
+#define PEFCS_SEQ_CANARD_DEPLOY_FLAG_DELAY 0U
+#define PEFCS_SEQ_CANARD_CONTROL_ON_FLAG_DELAY 0U
+#define PEFCS_SEQ_FSA_FLAG_DELAY 0U
+#define PEFCS_SEQ_GUID_START_FLAG_DELAY 0U
 
 #endif /* PEFCS_INIT_H */

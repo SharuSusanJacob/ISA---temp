@@ -698,8 +698,20 @@ void load_pefcs_defaults(void)
     systemState.dapParams.integratorY_max_rad = PEFCS_DAP_INTEGRATOR_Y_MAX;
 
     /* ===== SEQUENCER PARAMETERS ===== */
-    /* Sequencer timing constants are already defined in minor.h */
-    /* No runtime initialization needed */
+    systemState.sequencerParams.confirmationCycles = PEFCS_SEQ_CONFIRMATION_CYCLES;
+    systemState.sequencerParams.rollRateT1Threshold = PEFCS_SEQ_ROLL_RATE_T1_THRESHOLD;
+    systemState.sequencerParams.rollRateT2Threshold = PEFCS_SEQ_ROLL_RATE_T2_THRESHOLD;
+    systemState.sequencerParams.t1WindowIn = PEFCS_SEQ_T1_WINDOW_IN_TIME;
+    systemState.sequencerParams.t1WindowOut = PEFCS_SEQ_T1_WINDOW_OUT_TIME;
+    systemState.sequencerParams.t2WindowIn = PEFCS_SEQ_T2_WINDOW_IN_TIME;
+    systemState.sequencerParams.t2WindowOut = PEFCS_SEQ_T2_WINDOW_OUT_TIME;
+    systemState.sequencerParams.t3WindowIn = PEFCS_SEQ_T3_WINDOW_IN_TIME;
+    systemState.sequencerParams.t3WindowOut = PEFCS_SEQ_T3_WINDOW_OUT_TIME;
+    systemState.sequencerParams.tProximity = PEFCS_SEQ_T_PROXIMITY;
+    systemState.sequencerParams.canardDeployDelay = PEFCS_SEQ_CANARD_DEPLOY_FLAG_DELAY;
+    systemState.sequencerParams.canardControlDelay = PEFCS_SEQ_CANARD_CONTROL_ON_FLAG_DELAY;
+    systemState.sequencerParams.fsaDelay = PEFCS_SEQ_FSA_FLAG_DELAY;
+    systemState.sequencerParams.guidStartDelay = PEFCS_SEQ_GUID_START_FLAG_DELAY;
 }
 
 /* ===== NAVIGATION IMPLEMENTATION ===== */
@@ -994,24 +1006,24 @@ static void sequencer_set_obc_reset(SequencerState_t *state, bool isActive)
  * @brief Helper function to check roll rate condition for T1
  *
  * @param rollRateFp Roll rate in rps (revolutions per second)
+ * @param params Pointer to sequencer parameters
  * @return true if roll rate is OK for T1, false otherwise
  */
-static bool is_roll_rate_ok_for_t1(double rollRateFp)
+static bool is_roll_rate_ok_for_t1(double rollRateFp, const SequencerParams_t *params)
 {
-    /* Roll rate threshold for T1 is 7.0 rps */
-    return (rollRateFp <= SEQ_ROLL_RATE_T1_THRESHOLD);
+    return (rollRateFp <= params->rollRateT1Threshold);
 }
 
 /**
  * @brief Helper function to check roll rate condition for T2
  *
  * @param rollRateFp Roll rate in rps (revolutions per second)
+ * @param params Pointer to sequencer parameters
  * @return true if roll rate is OK for T2, false otherwise
  */
-static bool is_roll_rate_ok_for_t2(double rollRateFp)
+static bool is_roll_rate_ok_for_t2(double rollRateFp, const SequencerParams_t *params)
 {
-    /* Roll rate threshold for T2 is 2.0 rps */
-    return (rollRateFp <= SEQ_ROLL_RATE_T2_THRESHOLD);
+    return (rollRateFp <= params->rollRateT2Threshold);
 }
 
 /**
@@ -1021,13 +1033,15 @@ static bool is_roll_rate_ok_for_t2(double rollRateFp)
  *
  * @param state Pointer to sequencer state structure
  * @param rollRateFp Roll rate in rps
+ * @param params Pointer to sequencer parameters
  * @param output Pointer to sequencer output structure
  * @return void
  */
-static void process_t1_logic(SequencerState_t *state, double rollRateFp, SequencerOutput_t *output)
+static void process_t1_logic(SequencerState_t *state, double rollRateFp,
+                             const SequencerParams_t *params, SequencerOutput_t *output)
 {
     /* First check if T1 window is out (T > T1WindowOut) */
-    if (state->mainClockCycles > SEQ_T1_WINDOW_OUT_TIME)
+    if (state->mainClockCycles > params->t1WindowOut)
     {
         /* Window out - Set T1 immediately */
         state->isT1Set = true;
@@ -1037,23 +1051,23 @@ static void process_t1_logic(SequencerState_t *state, double rollRateFp, Sequenc
         /* Schedule the canard deploy flag if not already sent */
         if (!state->isCanardDeployFlagSent)
         {
-            state->canardDeployFlagSendTime = state->mainClockCycles + SEQ_CANARD_DEPLOY_FLAG_DELAY;
+            state->canardDeployFlagSendTime = state->mainClockCycles + params->canardDeployDelay;
         }
 
         return;
     }
 
     /* Check for T1 window sensing */
-    if (state->mainClockCycles > SEQ_T1_WINDOW_IN_TIME)
+    if (state->mainClockCycles > params->t1WindowIn)
     {
         /* Check if the roll rate <= 7rps conditions are met */
-        if (is_roll_rate_ok_for_t1(rollRateFp))
+        if (is_roll_rate_ok_for_t1(rollRateFp, params))
         {
             /* If the roll rate is good, increment the confirmation counter */
             state->t1RollRateCount++;
 
             /* Check if the condition has been met for the required number of cycles */
-            if (state->t1RollRateCount >= SEQ_CONFIRMATION_CYCLES)
+            if (state->t1RollRateCount >= params->confirmationCycles)
             {
                 /* Set T1 */
                 state->isT1Set = true;
@@ -1063,7 +1077,7 @@ static void process_t1_logic(SequencerState_t *state, double rollRateFp, Sequenc
                 /* Schedule the canard deploy flag if not already sent */
                 if (!state->isCanardDeployFlagSent)
                 {
-                    state->canardDeployFlagSendTime = state->mainClockCycles + SEQ_CANARD_DEPLOY_FLAG_DELAY;
+                    state->canardDeployFlagSendTime = state->mainClockCycles + params->canardDeployDelay;
                 }
 
                 return;
@@ -1084,10 +1098,12 @@ static void process_t1_logic(SequencerState_t *state, double rollRateFp, Sequenc
  *
  * @param state Pointer to sequencer state structure
  * @param rollRateFp Roll rate in rps
+ * @param params Pointer to sequencer parameters
  * @param output Pointer to sequencer output structure
  * @return void
  */
-static void process_t2_logic(SequencerState_t *state, double rollRateFp, SequencerOutput_t *output)
+static void process_t2_logic(SequencerState_t *state, double rollRateFp,
+                             const SequencerParams_t *params, SequencerOutput_t *output)
 {
     /* Check if it's time to send the canard deploy flag */
     if (!state->isCanardDeployFlagSent && (state->mainClockCycles > state->canardDeployFlagSendTime))
@@ -1097,33 +1113,33 @@ static void process_t2_logic(SequencerState_t *state, double rollRateFp, Sequenc
     }
 
     /* Handle the timeout conditions */
-    if (state->mainClockCycles > (state->t1SetTime + SEQ_T2_WINDOW_OUT_TIME))
+    if (state->mainClockCycles > (state->t1SetTime + params->t2WindowOut))
     {
         /* Window expired - set T2 immediately */
         state->isT2Set = true;
         output->setT2 = true;
         state->t2SetTime = state->mainClockCycles; /* Record T2 set time */
         /* Schedule the Canard control flag */
-        state->canardControlFlagSendTime = state->mainClockCycles + SEQ_CANARD_CONTROL_ON_FLAG_DELAY;
+        state->canardControlFlagSendTime = state->mainClockCycles + params->canardControlDelay;
         return;
     }
 
     /* Check the T2 detection window */
-    if (state->mainClockCycles > (state->t1SetTime + SEQ_T2_WINDOW_IN_TIME))
+    if (state->mainClockCycles > (state->t1SetTime + params->t2WindowIn))
     {
         /* Check if the roll rate is below the T2 threshold (<= 2 rps) */
-        if (is_roll_rate_ok_for_t2(rollRateFp))
+        if (is_roll_rate_ok_for_t2(rollRateFp, params))
         {
             state->t2RollRateCount++;
             /* Check if the roll rate persists for 3 consecutive cycles */
-            if (state->t2RollRateCount >= SEQ_CONFIRMATION_CYCLES)
+            if (state->t2RollRateCount >= params->confirmationCycles)
             {
                 /* Set T2 */
                 state->isT2Set = true;
                 output->setT2 = true;
                 state->t2SetTime = state->mainClockCycles; /* Record T2 set time */
                 /* Schedule the canard control flag */
-                state->canardControlFlagSendTime = state->mainClockCycles + SEQ_CANARD_CONTROL_ON_FLAG_DELAY;
+                state->canardControlFlagSendTime = state->mainClockCycles + params->canardControlDelay;
                 return;
             }
         }
@@ -1143,10 +1159,12 @@ static void process_t2_logic(SequencerState_t *state, double rollRateFp, Sequenc
  *
  * @param state Pointer to sequencer state structure
  * @param tGo Time to go from guidance in seconds (double)
+ * @param params Pointer to sequencer parameters
  * @param output Pointer to sequencer output structure
  * @return void
  */
-static void process_t3_logic(SequencerState_t *state, double tGo, SequencerOutput_t *output)
+static void process_t3_logic(SequencerState_t *state, double tGo,
+                             const SequencerParams_t *params, SequencerOutput_t *output)
 {
     /* First check if guidance start flag is already sent */
     if (state->isGuidStartFlagSent)
@@ -1157,7 +1175,7 @@ static void process_t3_logic(SequencerState_t *state, double tGo, SequencerOutpu
         {
             /* Both guidance and FSA flags are sent */
             /* Check if T3 window is out */
-            if (state->mainClockCycles > (state->t2SetTime + SEQ_T3_WINDOW_OUT_TIME))
+            if (state->mainClockCycles > (state->t2SetTime + params->t3WindowOut))
             {
                 /* T3 window is out, set T3 if not already set */
                 if (!state->isT3Set)
@@ -1171,10 +1189,10 @@ static void process_t3_logic(SequencerState_t *state, double tGo, SequencerOutpu
             else
             {
                 /* T3 window is not out, check if T3 window in */
-                if (state->mainClockCycles > (state->t2SetTime + SEQ_T3_WINDOW_IN_TIME))
+                if (state->mainClockCycles > (state->t2SetTime + params->t3WindowIn))
                 {
                     /* T3 window is in, check tGo from guidance (in seconds) */
-                    if (tGo < SEQ_T_PROXIMITY)
+                    if (tGo < params->tProximity)
                     {
                         /* tGo is less than time to enable proximity sensor */
                         state->isT3Set = true;
@@ -1249,13 +1267,13 @@ static void process_t3_logic(SequencerState_t *state, double tGo, SequencerOutpu
                 state->isCanardControlFlagSent = true;
 
                 /* Schedule the flags to be sent */
-                state->fsaActivateFlagSendTime = state->mainClockCycles + SEQ_FSA_FLAG_DELAY;
-                state->guidStartFlagSendTime = state->mainClockCycles + SEQ_GUID_START_FLAG_DELAY;
+                state->fsaActivateFlagSendTime = state->mainClockCycles + params->fsaDelay;
+                state->guidStartFlagSendTime = state->mainClockCycles + params->guidStartDelay;
             }
             /* If not time, we just return and check again next cycle */
 
             /* Check if T2 window is out */
-            if (state->mainClockCycles > (state->t1SetTime + SEQ_T2_WINDOW_OUT_TIME))
+            if (state->mainClockCycles > (state->t1SetTime + params->t2WindowOut))
             {
                 /* T2 window out, set T2 immediately if not already set */
                 if (!state->isT2Set)
@@ -1268,7 +1286,7 @@ static void process_t3_logic(SequencerState_t *state, double tGo, SequencerOutpu
             else
             {
                 /* T2 window not out, check if T2 window in */
-                if (state->mainClockCycles > (state->t1SetTime + SEQ_T2_WINDOW_IN_TIME))
+                if (state->mainClockCycles > (state->t1SetTime + params->t2WindowIn))
                 {
                     /* T2 window in logic */
                     /* In processT3Logic we already know T2 conditions were met */
@@ -1297,8 +1315,9 @@ static void execute_sequencer(double dt_s)
     /* Read timeToGo from guidance (in seconds, double) */
     double tGo = systemState.guidanceState.timeToGo;
 
-    /* Get pointer to sequencer state */
+    /* Get pointer to sequencer state and parameters */
     SequencerState_t *state = &systemState.sequencerState;
+    const SequencerParams_t *params = &systemState.sequencerParams;
 
     /* Initialize sequencer output structure */
     SequencerOutput_t output;
@@ -1322,17 +1341,17 @@ static void execute_sequencer(double dt_s)
     if (state->isT2Set)
     {
         /* The projectile is in T2 phase - check for T3 conditions */
-        process_t3_logic(state, tGo, &output);
+        process_t3_logic(state, tGo, params, &output);
     }
     else if (state->isT1Set)
     {
         /* The projectile is in T1 phase - check for T2 conditions */
-        process_t2_logic(state, rollRateFp, &output);
+        process_t2_logic(state, rollRateFp, params, &output);
     }
     else if (state->isT0Set)
     {
         /* The projectile is in T0 phase, check for T1 conditions */
-        process_t1_logic(state, rollRateFp, &output);
+        process_t1_logic(state, rollRateFp, params, &output);
     }
 
     /* Update systemState.flags.* publicly from sequencer output */
@@ -1755,6 +1774,11 @@ Status_t set_obc_reset(bool isActive)
         systemState.actuatorCommands.ActuatorC6 = -0.024432809773124;
         systemState.actuatorCommands.ActuatorC9 = -0.024432809773124;
         systemState.actuatorCommands.ActuatorC12 = -0.024432809773124;
+
+        /* Reset Guidance Persistence State */
+        systemState.guidanceState.prevAccel.x = 0.0;
+        systemState.guidanceState.prevAccel.y = 0.0;
+        systemState.guidanceState.prevAccel.z = 0.0;
     }
 
     return SUCCESS;

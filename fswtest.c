@@ -258,12 +258,8 @@ int main(int argc, char *argv[])
 
     /* Initialize flight software when OBC reset is triggered */
     printf("Initializing flight software...\n");
-    load_pefcs_defaults(); /* Load navigation/DAP parameters */
-    guidance_init();       /* Load guidance parameters (geodetic->ECEF) */
-
-    /* Set OBC reset flag to true to start mission */
-    systemState.sequencerState.isOBCReset = true;
-    systemState.sequencerState.isT0Set = true; /* CRITICAL: Start in T0 phase */
+    set_obc_reset(true); /* Centralized reset: loads PEFCS, zeros filters, starts sequencer */
+    guidance_init();     /* Load guidance parameters (geodetic->ECEF) */
 
     /* Enable test mode to bypass hardware processing */
     systemState.testMode = true;

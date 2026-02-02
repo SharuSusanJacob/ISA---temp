@@ -100,6 +100,7 @@ typedef struct
     GuidanceState_t guidanceState;
     NavigationState_t navigationState;
     SequencerState_t sequencerState;
+    SequencerParams_t sequencerParams;
     DapParams_t dapParams;
     // Accelerometer data processing
     AccelerometerData_t accelerometerData;

@@ -34,6 +34,7 @@
 typedef struct
 {
     Vector3_t accelCmdBody; /* Commanded acceleration in Body frame (m/s²) */
+    Vector3_t prevAccel;    /* Previous cycle acceleration for rate clamping (m/s²) */
     double timeToGo;        /* Estimated time to impact (s) */
     bool terminalPhase;     /* True if in terminal phase */
 } GuidanceState_t;
