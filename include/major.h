@@ -42,34 +42,34 @@ typedef struct
 /* ===== HARDWARE SENSOR INPUT VARIABLES (Placeholder for Hardware Team) ===== */
 
 /**
- * @brief GNSS ECEF position data from hardware
+ * @brief GNSS ECI position data from hardware (treated as ECI by guidance)
  *
- * This structure contains the raw ECEF position data from GNSS hardware.
- * The hardware team will populate these values from the actual GNSS receiver.
+ * This structure contains the raw position data from GNSS hardware.
+ * The guidance algorithm treats this frame as Inertial (ECI).
  */
 typedef struct
 {
-    double x_m;         /* ECEF X position in meters */
-    double y_m;         /* ECEF Y position in meters */
-    double z_m;         /* ECEF Z position in meters */
+    double x_m;         /* ECI X position in meters */
+    double y_m;         /* ECI Y position in meters */
+    double z_m;         /* ECI Z position in meters */
     bool valid;         /* GNSS data validity flag */
     uint32_t timestamp; /* GNSS data timestamp */
-} GnssEcefPosition_t;
+} GnssEciPosition_t;
 
 /**
- * @brief GNSS ECEF velocity data from hardware
+ * @brief GNSS ECI velocity data from hardware (treated as ECI by guidance)
  *
- * This structure contains the raw ECEF velocity data from GNSS hardware.
- * The hardware team will populate these values from the actual GNSS receiver.
+ * This structure contains the raw velocity data from GNSS hardware.
+ * The guidance algorithm treats this frame as Inertial (ECI).
  */
 typedef struct
 {
-    double vx_ms;       /* ECEF X velocity in m/s */
-    double vy_ms;       /* ECEF Y velocity in m/s */
-    double vz_ms;       /* ECEF Z velocity in m/s */
+    double vx_ms;       /* ECI X velocity in m/s */
+    double vy_ms;       /* ECI Y velocity in m/s */
+    double vz_ms;       /* ECI Z velocity in m/s */
     bool valid;         /* GNSS velocity validity flag */
     uint32_t timestamp; /* GNSS velocity timestamp */
-} GnssEcefVelocity_t;
+} GnssEciVelocity_t;
 
 /**
  * @brief Mission target and launch point data
@@ -184,14 +184,14 @@ void set_guidance_impact_angles(double theta_f_rad, double psi_f_rad);
 void process_gnss_data(void);
 
 /**
- * @brief Process GNSS ECEF data and convert to local frame
+ * @brief Process GNSS ECI data and convert to local frame
  *
- * This function processes the GNSS ECEF position and velocity data,
+ * This function processes the GNSS ECI position and velocity data,
  * converts it to the local frame, and stores it in system state.
  *
  * @return void
  */
-void process_gnss_ecef_data(void);
+void process_gnss_eci_data(void);
 
 /**
  * @brief Calculate guidance acceleration command
@@ -200,10 +200,10 @@ void process_gnss_ecef_data(void);
  * acceleration command in body frame.
  *
  * @param accel_body Output acceleration command in body frame (m/s²)
- * @param position_ecef Input projectile position in ECEF frame (m)
- * @param velocity_ecef Input projectile velocity in ECEF frame (m/s)
- * @param origin_ecef Launch point in ECEF frame (m)
- * @param target_ecef Target point in ECEF frame (m)
+ * @param position_eci Input projectile position in ECI frame (m)
+ * @param velocity_eci Input projectile velocity in ECI frame (m/s)
+ * @param origin_eci Launch point in ECI frame (m)
+ * @param target_eci Target point in ECI frame (m)
  * @param theta_f Desired impact elevation angle (rad)
  * @param psi_f Desired impact azimuth angle (rad)
  * @param theta Pitch angle in radians (from navigation)
@@ -211,8 +211,8 @@ void process_gnss_ecef_data(void);
  * @param phi Roll angle in radians (from navigation)
  */
 void calculate_guidance_acceleration(Vector3_t *accel_body,
-                                     const Vector3_t *position_ecef, const Vector3_t *velocity_ecef,
-                                     const Vector3_t *origin_ecef, const Vector3_t *target_ecef,
+                                     const Vector3_t *position_eci, const Vector3_t *velocity_eci,
+                                     const Vector3_t *origin_eci, const Vector3_t *target_eci,
                                      double theta_f, double psi_f, double theta, double psi, double phi);
 
 #endif /* MAJOR_H */

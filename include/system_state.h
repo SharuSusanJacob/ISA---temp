@@ -124,9 +124,9 @@ typedef struct
         bool proximitySensorFlag;
     } flags;
 
-    // ECEF frames from GNSS
-    Vector3_t position_ecef;
-    Vector3_t velocity_ecef;
+    // ECI frames from GNSS (renamed from ECEF)
+    Vector3_t position_eci;
+    Vector3_t velocity_eci;
     Vector3_t positionLocal;
     Vector3_t velocityLocal;
 

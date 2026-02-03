@@ -52,15 +52,15 @@ void inject_sensor_data(
     double deltaVx, double deltaVy, double deltaVz,
     double deltaThetaX, double deltaThetaY, double deltaThetaZ)
 {
-    /* GNSS Position (ECEF) - meters */
-    systemState.position_ecef.x = pos_x;
-    systemState.position_ecef.y = pos_y;
-    systemState.position_ecef.z = pos_z;
+    /* GNSS Position (ECI) - meters */
+    systemState.position_eci.x = pos_x;
+    systemState.position_eci.y = pos_y;
+    systemState.position_eci.z = pos_z;
 
-    /* GNSS Velocity (ECEF) - m/s */
-    systemState.velocity_ecef.x = vel_x;
-    systemState.velocity_ecef.y = vel_y;
-    systemState.velocity_ecef.z = vel_z;
+    /* GNSS Velocity (ECI) - m/s */
+    systemState.velocity_eci.x = vel_x;
+    systemState.velocity_eci.y = vel_y;
+    systemState.velocity_eci.z = vel_z;
 
     /* Accelerometer - Direct injection into processed data structure (m/s²) */
     systemState.accelerometerData.accel_current.x = acc_x;

@@ -80,12 +80,12 @@ void quaternion_to_rotation_matrix(double *matrix, const Quaternion_t *q);
 // ===== Coordinate Transformations =====
 // ECEF transformations (for GNSS input)
 void geodetic_to_ecef(Vector3_t *result, const GeodeticPos_t *pos);
-void ecef_to_local(Vector3_t *result, const Vector3_t *r_ecef,
-                   const GeodeticPos_t *launch, const GeodeticPos_t *target);
+void eci_to_local(Vector3_t *result, const Vector3_t *r_eci,
+                  const GeodeticPos_t *launch, const GeodeticPos_t *target);
 void local_to_ecef_vel(Vector3_t *result, const Vector3_t *v_local,
                        const GeodeticPos_t *launch, const GeodeticPos_t *target);
-void ecef_to_local_vel(Vector3_t *result, const Vector3_t *v_ecef,
-                       const GeodeticPos_t *launch, const GeodeticPos_t *target);
+void eci_to_local_vel(Vector3_t *result, const Vector3_t *v_eci,
+                      const GeodeticPos_t *launch, const GeodeticPos_t *target);
 
 // Local to Body frame transformation (for guidance to DAP interface)
 void local_to_body(Vector3_t *result, const Vector3_t *v_local,

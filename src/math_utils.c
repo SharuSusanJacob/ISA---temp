@@ -178,13 +178,13 @@ static void build_local_axes(Vector3_t *x_axis, Vector3_t *y_axis, Vector3_t *z_
 }
 
 /**
- * @brief Convert ECEF coordinates to Local Frame
+ * @brief Convert ECI coordinates to Local Frame
  * @param result Output Position in Local Frame (meters)
- * @param r_ecef Input ECEF position vector
+ * @param r_eci Input ECI position vector
  * @param launch Launch point geodetic position
  * @param target Target Geodetic position
  */
-void ecef_to_local(Vector3_t *result, const Vector3_t *r_ecef, const GeodeticPos_t *launch, const GeodeticPos_t *target)
+void eci_to_local(Vector3_t *result, const Vector3_t *r_eci, const GeodeticPos_t *launch, const GeodeticPos_t *target)
 {
     Vector3_t x_axis, y_axis, z_axis;
     build_local_axes(&x_axis, &y_axis, &z_axis, launch, target);
@@ -193,7 +193,7 @@ void ecef_to_local(Vector3_t *result, const Vector3_t *r_ecef, const GeodeticPos
     geodetic_to_ecef(&launch_ecef, launch);
 
     Vector3_t rel;
-    vector3_subtract(&rel, r_ecef, &launch_ecef);
+    vector3_subtract(&rel, r_eci, &launch_ecef);
 
     double dot_x, dot_y, dot_z;
     vector3_dot(&dot_x, &x_axis, &rel);
@@ -224,22 +224,22 @@ void local_to_ecef_vel(Vector3_t *result, const Vector3_t *v_local, const Geodet
 }
 
 /**
- * @brief Convert ECEF frame velocity to Local frame
+ * @brief Convert ECI frame velocity to Local frame
  * @param result Output velocity in Local frame
- * @param v_ecef Input velocity in ECEF frame
+ * @param v_eci Input velocity in ECI frame
  * @param launch Launch point geodetic position
  * @param target Target point geodetic position
  */
-void ecef_to_local_vel(Vector3_t *result, const Vector3_t *v_ecef, const GeodeticPos_t *launch, const GeodeticPos_t *target)
+void eci_to_local_vel(Vector3_t *result, const Vector3_t *v_eci, const GeodeticPos_t *launch, const GeodeticPos_t *target)
 {
     Vector3_t x_axis, y_axis, z_axis;
     build_local_axes(&x_axis, &y_axis, &z_axis, launch, target);
 
     /* Matrix multiplication R_ECEF->Local (transpose of basis vectors) */
     double dot_x, dot_y, dot_z;
-    vector3_dot(&dot_x, &x_axis, v_ecef);
-    vector3_dot(&dot_y, &y_axis, v_ecef);
-    vector3_dot(&dot_z, &z_axis, v_ecef);
+    vector3_dot(&dot_x, &x_axis, v_eci);
+    vector3_dot(&dot_y, &y_axis, v_eci);
+    vector3_dot(&dot_z, &z_axis, v_eci);
 
     result->x = dot_x;
     result->y = dot_y;
