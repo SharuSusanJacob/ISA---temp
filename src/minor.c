@@ -697,6 +697,10 @@ void load_pefcs_defaults(void)
     systemState.dapParams.integratorY_min_rad = PEFCS_DAP_INTEGRATOR_Y_MIN;
     systemState.dapParams.integratorY_max_rad = PEFCS_DAP_INTEGRATOR_Y_MAX;
 
+    /* Actuator Parameters */
+    systemState.dapParams.actuator_deadband_rad = PEFCS_ACTUATOR_DEADBAND_RAD;
+    systemState.dapParams.actuator_max_deflection_rad = PEFCS_ACTUATOR_MAX_DEFLECTION_RAD;
+
     /* ===== SEQUENCER PARAMETERS ===== */
     systemState.sequencerParams.confirmationCycles = PEFCS_SEQ_CONFIRMATION_CYCLES;
     systemState.sequencerParams.rollRateT1Threshold = PEFCS_SEQ_ROLL_RATE_T1_THRESHOLD;
@@ -1474,6 +1478,24 @@ static DAPOutput_t compute_delta_roll_command(double rollAngle_rad, double rollR
     }
     rollIntegrator = integratorValue;
 
+    if(fabs(deltaCommandRoll)< dapParams->actuator_deadband_rad)// actuator deadband
+    {
+        deltaCommandRoll = 0.0;
+    }
+    else
+    {
+        deltaCommandRoll = deltaCommandRoll;
+    }
+
+    if (deltaCommandRoll > dapParams->actuator_max_deflection_rad) // Actuator deflection limit +6 degrees
+    {
+        deltaCommandRoll = dapParams->actuator_max_deflection_rad;
+    }
+    else if (deltaCommandRoll < -dapParams->actuator_max_deflection_rad)
+    {
+        deltaCommandRoll = -dapParams->actuator_max_deflection_rad;
+    }
+
     result.delta12_rad = deltaCommandRoll;
     result.delta3_rad = deltaCommandRoll;
     result.delta6_rad = deltaCommandRoll;
@@ -1547,6 +1569,24 @@ static PYOutput_t compute_delta_pitch_command(double accelerationY_mps2, double 
     }
     pitchIntegrator = integratorValue;
 
+    if(fabs(deltaCommandPitch)< dapParams->actuator_deadband_rad) // actuator deadband
+    {
+        deltaCommandPitch = 0.0;
+    }
+    else
+    {
+        deltaCommandPitch = deltaCommandPitch;
+    }
+
+    if (deltaCommandPitch > dapParams->actuator_max_deflection_rad)  // Actuator deflection limit +6 degrees
+    {
+        deltaCommandPitch = dapParams->actuator_max_deflection_rad;
+    }
+    else if (deltaCommandPitch < -dapParams->actuator_max_deflection_rad)
+    {
+        deltaCommandPitch = -dapParams->actuator_max_deflection_rad;
+    }    
+
     result.delta1_rad = deltaCommandPitch;
     result.delta2_rad = deltaCommandPitch;
     return result;
@@ -1617,6 +1657,24 @@ static PYOutput_t compute_delta_yaw_command(double accelerationZ_mps2, double ya
     }
     yawIntegrator = integratorValue;
 
+    if(fabs(deltaCommandYaw)< dapParams->actuator_deadband_rad)// actuator deadband
+    {
+        deltaCommandYaw = 0.0;
+    }
+    else
+    {
+        deltaCommandYaw = deltaCommandYaw;
+    }
+
+    if (deltaCommandYaw > dapParams->actuator_max_deflection_rad) // Actuator deflection limit +6 degrees
+    {
+        deltaCommandYaw = dapParams->actuator_max_deflection_rad;
+    }
+    else if (deltaCommandYaw < -dapParams->actuator_max_deflection_rad)
+    {
+        deltaCommandYaw = -dapParams->actuator_max_deflection_rad;
+    }   
+
     result.delta1_rad = deltaCommandYaw;
     result.delta2_rad = deltaCommandYaw;
     return result;
@@ -1650,6 +1708,27 @@ static void execute_dap(double dt_s)
         return;
     }
 
+    /* Read DAP parameters from system state */
+    DapParams_t *dapParams = &systemState.dapParams;
+    /* Handle guidance command latching based on guidStartFlag and canardControlFlag */
+    if (systemState.flags.guidStartFlag)
+    {
+        dapParams->NavigationLastOutFlag = false;
+        
+    }
+    else if ((!systemState.flags.guidStartFlag) && (systemState.flags.canardControlFlag))
+    {
+        /* Guidance command is zero - set nav last out as guidance command */
+        if (!dapParams->NavigationLastOutFlag)
+        {
+            dapParams->latchedguidanceAccelY = systemState.accelerometerData.accel_current.y;
+            dapParams->latchedguidanceAccelZ = systemState.accelerometerData.accel_current.z;
+            dapParams->NavigationLastOutFlag = true;
+        }
+        systemState.guidanceState.accelCmdBody.y = dapParams->latchedguidanceAccelY;
+        systemState.guidanceState.accelCmdBody.z = dapParams->latchedguidanceAccelZ;
+
+    }
     /* Read guidance acceleration commands from DAP interface */
     /* Guidance updates these at 10Hz in major cycle */
     /* DAP Interface: Only Y (pitch) and Z (yaw) components needed */
@@ -1667,9 +1746,6 @@ static void execute_dap(double dt_s)
 
     /* Read current roll angle from navigation */
     double rollAngle = systemState.navigationState.attitude_e.roll_rad; /* Roll angle (rad) */
-
-    /* Read DAP parameters from system state */
-    const DapParams_t *dapParams = &systemState.dapParams;
 
     /* Execute DAP algorithm - canard control is enabled if we reach here */
     DAPOutput_t dapOutput;

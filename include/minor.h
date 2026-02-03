@@ -162,6 +162,13 @@ typedef struct
     double psi_max_rad;         /* Yaw angle max limit in radians */
     double integratorY_min_rad; /* Integrator min limit in radians for yaw */
     double integratorY_max_rad; /* Integrator max limit in radians for yaw */
+
+    double actuator_deadband_rad;      /* Actuator deadband in radians */
+    double actuator_max_deflection_rad; /* Actuator maximum deflection in radians */
+
+    bool NavigationLastOutFlag;
+    double latchedguidanceAccelY;
+    double latchedguidanceAccelZ;
 } DapParams_t;
 
 // DAP Output structure for canard deflection commands
