@@ -1,0 +1,156 @@
+fswtest.c: In function 'main':
+fswtest.c:215:14: warning: unused parameter 'argc' [-Wunused-parameter]
+  215 | int main(int argc, char *argv[])
+      |          ~~~~^~~~
+fswtest.c:215:26: warning: unused parameter 'argv' [-Wunused-parameter]
+  215 | int main(int argc, char *argv[])
+      |                    ~~~~~~^~~~~~
+src/major.c: In function 'set_gnss_position_ecef':
+src/major.c:254:61: warning: unused parameter 'offset_x' [-Wunused-parameter]
+  254 | void set_gnss_position_ecef(const uint8_t *buffer, uint16_t offset_x, uint16_t offset_y, uint16_t offset_z, bool valid, uint32_t timestamp)
+      |                                                    ~~~~~~~~~^~~~~~~~
+src/major.c:254:80: warning: unused parameter 'offset_y' [-Wunused-parameter]
+  254 | void set_gnss_position_ecef(const uint8_t *buffer, uint16_t offset_x, uint16_t offset_y, uint16_t offset_z, bool valid, uint32_t timestamp)
+      |                                                                       ~~~~~~~~~^~~~~~~~
+src/major.c:254:99: warning: unused parameter 'offset_z' [-Wunused-parameter]
+  254 | void set_gnss_position_ecef(const uint8_t *buffer, uint16_t offset_x, uint16_t offset_y, uint16_t offset_z, bool valid, uint32_t timestamp)
+      |                                                                                          ~~~~~~~~~^~~~~~~~
+src/major.c: In function 'set_gnss_velocity_ecef':
+src/major.c:282:61: warning: unused parameter 'offset_vx' [-Wunused-parameter]
+  282 | void set_gnss_velocity_ecef(const uint8_t *buffer, uint16_t offset_vx, uint16_t offset_vy, uint16_t offset_vz, bool valid, uint32_t timestamp)
+      |                                                    ~~~~~~~~~^~~~~~~~~
+src/major.c:282:81: warning: unused parameter 'offset_vy' [-Wunused-parameter]
+  282 | void set_gnss_velocity_ecef(const uint8_t *buffer, uint16_t offset_vx, uint16_t offset_vy, uint16_t offset_vz, bool valid, uint32_t timestamp)
+      |                                                                        ~~~~~~~~~^~~~~~~~~
+src/major.c:282:101: warning: unused parameter 'offset_vz' [-Wunused-parameter]
+  282 | void set_gnss_velocity_ecef(const uint8_t *buffer, uint16_t offset_vx, uint16_t offset_vy, uint16_t offset_vz, bool valid, uint32_t timestamp)
+      |                                                                                            ~~~~~~~~~^~~~~~~~~
+src/major.c: In function 'calculate_guidance_acceleration':
+src/major.c:625:12: warning: unused variable 'delta_dot' [-Wunused-variable]
+  625 |     double delta_dot = (-GUID_PARAM_K * f_sigma_not / t_go) * h_delta;
+      |            ^~~~~~~~~
+src/major.c: At top level:
+src/major.c:59:13: warning: 'build_local_axes_from_ecef' declared 'static' but never defined [-Wunused-function]
+   59 | static void build_local_axes_from_ecef(Vector3_t *x_axis, Vector3_t *y_axis, Vector3_t *z_axis,
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~
+src/major.c:63:13: warning: 'local_to_eci_using_axes' declared 'static' but never defined [-Wunused-function]
+   63 | static void local_to_eci_using_axes(Vector3_t *result, const Vector3_t *v_local,
+      |             ^~~~~~~~~~~~~~~~~~~~~~~
+src/minor.c: In function 'check_sensor_health':
+src/minor.c:63:10: warning: unused variable 'mag_ok' [-Wunused-variable]
+   63 |     bool mag_ok = ((sensor_status & SENSOR_MAG_IS_VALID) == 0U);
+      |          ^~~~~~
+src/minor.c:62:10: warning: unused variable 'gyro_z_ok' [-Wunused-variable]
+   62 |     bool gyro_z_ok = ((sensor_status & SENSOR_GYRO_Z_IS_VALID) == 0U);
+      |          ^~~~~~~~~
+src/minor.c:61:10: warning: unused variable 'gyro_y_ok' [-Wunused-variable]
+   61 |     bool gyro_y_ok = ((sensor_status & SENSOR_GYRO_Y_IS_VALID) == 0U);
+      |          ^~~~~~~~~
+src/minor.c:60:10: warning: unused variable 'gyro_x_ok' [-Wunused-variable]
+   60 |     bool gyro_x_ok = ((sensor_status & SENSOR_GYRO_X_IS_VALID) == 0U);
+      |          ^~~~~~~~~
+src/minor.c:59:10: warning: unused variable 'accel_z_ok' [-Wunused-variable]
+   59 |     bool accel_z_ok = ((sensor_status & SENSOR_ACCEL_Z_IS_VALID) == 0U);
+      |          ^~~~~~~~~~
+src/minor.c:58:10: warning: unused variable 'accel_y_ok' [-Wunused-variable]
+   58 |     bool accel_y_ok = ((sensor_status & SENSOR_ACCEL_Y_IS_VALID) == 0U);
+      |          ^~~~~~~~~~
+src/minor.c:57:10: warning: unused variable 'accel_x_ok' [-Wunused-variable]
+   57 |     bool accel_x_ok = ((sensor_status & SENSOR_ACCEL_X_IS_VALID) == 0U);
+      |          ^~~~~~~~~~
+src/minor.c: In function 'send_accelerometer_health_to_telemetry':
+src/minor.c:159:10: warning: unused variable 'z_axis_healthy' [-Wunused-variable]
+  159 |     bool z_axis_healthy = systemState.accelerometerData.accel_z_health_ok;
+      |          ^~~~~~~~~~~~~~
+src/minor.c:158:10: warning: unused variable 'y_axis_healthy' [-Wunused-variable]
+  158 |     bool y_axis_healthy = systemState.accelerometerData.accel_y_health_ok;
+      |          ^~~~~~~~~~~~~~
+src/minor.c:157:10: warning: unused variable 'x_axis_healthy' [-Wunused-variable]
+  157 |     bool x_axis_healthy = systemState.accelerometerData.accel_x_health_ok;
+      |          ^~~~~~~~~~~~~~
+src/minor.c: In function 'send_gyroscope_health_to_telemetry':
+src/minor.c:216:10: warning: unused variable 'z_axis_healthy' [-Wunused-variable]
+  216 |     bool z_axis_healthy = systemState.gyroscopeData.gyro_z_health_ok;
+      |          ^~~~~~~~~~~~~~
+src/minor.c:215:10: warning: unused variable 'y_axis_healthy' [-Wunused-variable]
+  215 |     bool y_axis_healthy = systemState.gyroscopeData.gyro_y_health_ok;
+      |          ^~~~~~~~~~~~~~
+src/minor.c:214:10: warning: unused variable 'x_axis_healthy' [-Wunused-variable]
+  214 |     bool x_axis_healthy = systemState.gyroscopeData.gyro_x_health_ok;
+      |          ^~~~~~~~~~~~~~
+src/minor.c: In function 'send_magnetometer_health_to_telemetry':
+src/minor.c:359:10: warning: unused variable 'mag_healthy' [-Wunused-variable]
+  359 |     bool mag_healthy = systemState.magnetometerData.mag_health_ok;
+      |          ^~~~~~~~~~~
+src/minor.c: In function 'store_incremental_velocity_to_flash':
+src/minor.c:427:95: warning: unused parameter 'acceleration' [-Wunused-parameter]
+  427 | void store_incremental_velocity_to_flash(const Vector3_t *delta_v_converted, const Vector3_t *acceleration)
+      |                                                                              ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~
+src/minor.c: In function 'send_attitude_to_telemetry':
+src/minor.c:563:12: warning: unused variable 'yaw_rad' [-Wunused-variable]
+  563 |     double yaw_rad = systemState.attitudeTelemetryData.attitude_rad.z;
+      |            ^~~~~~~
+src/minor.c:562:12: warning: unused variable 'pitch_rad' [-Wunused-variable]
+  562 |     double pitch_rad = systemState.attitudeTelemetryData.attitude_rad.y;
+      |            ^~~~~~~~~
+src/minor.c:561:12: warning: unused variable 'roll_rad' [-Wunused-variable]
+  561 |     double roll_rad = systemState.attitudeTelemetryData.attitude_rad.x;
+      |            ^~~~~~~~
+src/minor.c: In function 'send_navigation_confirmation_flags_to_telemetry':
+src/minor.c:589:10: warning: unused variable 'gyro_3_cycles_confirmed' [-Wunused-variable]
+  589 |     bool gyro_3_cycles_confirmed = systemState.navigationState.gyro_3_cycles_confirmed;
+      |          ^~~~~~~~~~~~~~~~~~~~~~~
+src/minor.c:588:10: warning: unused variable 'mag_3_cycles_confirmed' [-Wunused-variable]
+  588 |     bool mag_3_cycles_confirmed = systemState.navigationState.mag_3_cycles_confirmed;
+      |          ^~~~~~~~~~~~~~~~~~~~~~
+src/minor.c: In function 'process_navigation':
+src/minor.c:845:39: warning: unused parameter 'dt_s' [-Wunused-parameter]
+  845 | static void process_navigation(double dt_s)
+      |                                ~~~~~~~^~~~
+src/minor.c: In function 'execute_sequencer':
+src/minor.c:1310:38: warning: unused parameter 'dt_s' [-Wunused-parameter]
+ 1310 | static void execute_sequencer(double dt_s)
+      |                               ~~~~~~~^~~~
+src/minor.c: At top level:
+src/minor.c:1423:21: warning: 'integratorY_max_rad' defined but not used [-Wunused-const-variable=]
+ 1423 | static const double integratorY_max_rad = 0.08726;  /* Integrator max limit in radians */
+      |                     ^~~~~~~~~~~~~~~~~~~
+src/minor.c:1422:21: warning: 'integratorY_min_rad' defined but not used [-Wunused-const-variable=]
+ 1422 | static const double integratorY_min_rad = -0.08726; /* Integrator min limit in radians */
+      |                     ^~~~~~~~~~~~~~~~~~~
+src/minor.c:1421:21: warning: 'psi_max_rad' defined but not used [-Wunused-const-variable=]
+ 1421 | static const double psi_max_rad = 0.014677;         /* Yaw angle max limit in radians */
+      |                     ^~~~~~~~~~~
+src/minor.c:1420:21: warning: 'psi_min_rad' defined but not used [-Wunused-const-variable=]
+ 1420 | static const double psi_min_rad = -0.014677;        /* Yaw angle min limit in radians */
+      |                     ^~~~~~~~~~~
+src/minor.c:1418:21: warning: 'integratorP_max_rad' defined but not used [-Wunused-const-variable=]
+ 1418 | static const double integratorP_max_rad = 0.08726;  /* Integrator max limit in radians */
+      |                     ^~~~~~~~~~~~~~~~~~~
+src/minor.c:1417:21: warning: 'integratorP_min_rad' defined but not used [-Wunused-const-variable=]
+ 1417 | static const double integratorP_min_rad = -0.08726; /* Integrator min limit in radians */
+      |                     ^~~~~~~~~~~~~~~~~~~
+src/minor.c:1416:21: warning: 'theta_max_rad' defined but not used [-Wunused-const-variable=]
+ 1416 | static const double theta_max_rad = 0.014677;       /* Pitch angle max limit in radians */
+      |                     ^~~~~~~~~~~~~
+src/minor.c:1415:21: warning: 'theta_min_rad' defined but not used [-Wunused-const-variable=]
+ 1415 | static const double theta_min_rad = -0.014677;      /* Pitch angle min limit in radians */
+      |                     ^~~~~~~~~~~~~
+src/minor.c:1413:21: warning: 'phi_max_rad' defined but not used [-Wunused-const-variable=]
+ 1413 | static const double phi_max_rad = 0.014677;        /* Roll angle max limit in radians */
+      |                     ^~~~~~~~~~~
+src/minor.c:1412:21: warning: 'phi_min_rad' defined but not used [-Wunused-const-variable=]
+ 1412 | static const double phi_min_rad = -0.014677;       /* Roll angle min limit in radians */
+      |                     ^~~~~~~~~~~
+src/minor.c:1411:21: warning: 'integratorR_max_rad' defined but not used [-Wunused-const-variable=]
+ 1411 | static const double integratorR_max_rad = 0.1745;  /* Integrator max limit in radians */
+      |                     ^~~~~~~~~~~~~~~~~~~
+src/minor.c:1410:21: warning: 'integratorR_min_rad' defined but not used [-Wunused-const-variable=]
+ 1410 | static const double integratorR_min_rad = -0.1745; /* Integrator min limit in radians */
+      |                     ^~~~~~~~~~~~~~~~~~~
+src/minor.c:1395:15: warning: 'previousYawrate' defined but not used [-Wunused-variable]
+ 1395 | static double previousYawrate = 0.0;
+      |               ^~~~~~~~~~~~~~~
+src/minor.c:1394:15: warning: 'previousPitchrate' defined but not used [-Wunused-variable]
+ 1394 | static double previousPitchrate = 0.0;
+      |               ^~~~~~~~~~~~~~~~~

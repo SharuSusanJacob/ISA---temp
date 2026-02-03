@@ -52,15 +52,15 @@ void inject_sensor_data(
     double deltaVx, double deltaVy, double deltaVz,
     double deltaThetaX, double deltaThetaY, double deltaThetaZ)
 {
-    /* GNSS Position (ECI) - meters */
-    systemState.position_eci.x = pos_x;
-    systemState.position_eci.y = pos_y;
-    systemState.position_eci.z = pos_z;
+    /* GNSS Position (ECEF) - meters */
+    systemState.position_ecef.x = pos_x;
+    systemState.position_ecef.y = pos_y;
+    systemState.position_ecef.z = pos_z;
 
-    /* GNSS Velocity (ECI) - m/s */
-    systemState.velocity_eci.x = vel_x;
-    systemState.velocity_eci.y = vel_y;
-    systemState.velocity_eci.z = vel_z;
+    /* GNSS Velocity (ECEF) - m/s */
+    systemState.velocity_ecef.x = vel_x;
+    systemState.velocity_ecef.y = vel_y;
+    systemState.velocity_ecef.z = vel_z;
 
     /* Accelerometer - Direct injection into processed data structure (m/s²) */
     systemState.accelerometerData.accel_current.x = acc_x;
@@ -216,6 +216,8 @@ int main(int argc, char *argv[])
 
     /* CSV data variables */
     double mission_time, pos_x, pos_y, pos_z, vel_x, vel_y, vel_z;
+    int gps_week_csv;
+    double gps_tow_csv;
     double acc_x, acc_y, acc_z, gyro_p, gyro_q, gyro_r;
     double bmx, bmy, bmz;
     double deltaVx, deltaVy, deltaVz;
@@ -273,20 +275,21 @@ int main(int argc, char *argv[])
     {
         line_count++;
 
-        /* Parse CSV line */
-        int fields = sscanf(line_buffer, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
+        /* Parse CSV line - 24 columns including GPS time */
+        int fields = sscanf(line_buffer, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%d,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
                             &mission_time,
                             &pos_x, &pos_y, &pos_z,
                             &vel_x, &vel_y, &vel_z,
+                            &gps_week_csv, &gps_tow_csv,
                             &acc_x, &acc_y, &acc_z,
                             &gyro_p, &gyro_q, &gyro_r,
                             &bmx, &bmy, &bmz,
                             &deltaVx, &deltaVy, &deltaVz,
                             &deltaThetaX, &deltaThetaY, &deltaThetaZ);
 
-        if (fields != 22)
+        if (fields != 24)
         {
-            printf("Warning: Line %d has %d fields (expected 22), skipping\n", line_count, fields);
+            printf("Warning: Line %d has %d fields (expected 24), skipping\n", line_count, fields);
             continue;
         }
 
@@ -298,6 +301,10 @@ int main(int argc, char *argv[])
                            bmx, bmy, bmz,
                            deltaVx, deltaVy, deltaVz,
                            deltaThetaX, deltaThetaY, deltaThetaZ);
+
+        /* Inject GPS time into systemState for ECI conversion */
+        systemState.gps_week = gps_week_csv;
+        systemState.gps_tow = gps_tow_csv;
 
         /* Execute flight software cycles */
         minor_cycle(); /* Navigation, Sequencer, DAP (100Hz) */

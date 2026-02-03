@@ -23,21 +23,24 @@ SystemState_t systemState;
 
 /* GNSS Fail-Safe Variables */
 static bool gnss_data_valid = false;
-static GnssEciPosition_t previous_gnss_position = {0.0, 0.0, 0.0, false, 0U};
-static GnssEciVelocity_t previous_gnss_velocity = {0.0, 0.0, 0.0, false, 0U};
+static GnssEcefPosition_t previous_gnss_position = {0.0, 0.0, 0.0, false, 0U};
+static GnssEcefVelocity_t previous_gnss_velocity = {0.0, 0.0, 0.0, false, 0U};
 
 /* Global hardware input variables */
-static GnssEciPosition_t gnss_position_eci = {0.0, 0.0, 0.0, false, 0U};
-static GnssEciVelocity_t gnss_velocity_eci = {0.0, 0.0, 0.0, false, 0U};
+static GnssEcefPosition_t gnss_position_ecef = {0.0, 0.0, 0.0, false, 0U};
+static GnssEcefVelocity_t gnss_velocity_ecef = {0.0, 0.0, 0.0, false, 0U};
 
-//mijo cheta checkoutine ivide kettanam , launch point and target in ECI frame ivide kettanam
-static Vector3_t mission_target_eci = {0.0, 0.0, 0.0};       /* Target in ECI frame */
-static Vector3_t mission_launch_point_eci = {0.0, 0.0, 0.0}; /* Launch point in ECI frame */
+/* Target and launch point in ECEF frame */
+static Vector3_t mission_target_ecef = {0.0, 0.0, 0.0};       /* Target in ECEF frame */
+static Vector3_t mission_launch_point_ecef = {0.0, 0.0, 0.0}; /* Launch point in ECEF frame */
 
-// Mijo cheta , raheese - Checkoutine Elevetion ivide theta_f il
+/* Geodetic coordinates for ECI→Local conversion (stored for use in guidance) */
+static GeodeticPos_t target_geodetic_stored;
+static GeodeticPos_t origin_geodetic_stored;
+
+/* Impact angles */
 static double guidance_theta_f = 0.0; /* Desired impact elevation angle (rad) */
-// Mijo cheta , raheese - Checkoutine Azimuth ivide psi_f il
-static double guidance_psi_f = 0.0; /* Desired impact azimuth angle (rad) */
+static double guidance_psi_f = 0.0;   /* Desired impact azimuth angle (rad) */
 
 /* External GNSS lock flag from hardware team */
 volatile bool gnss_lock;
@@ -50,10 +53,10 @@ static Vector3_t local_z_axis = {0.0, 0.0, 0.0};
 /* Forward declarations for static helper functions */
 static void build_local_axes_from_ecef(Vector3_t *x_axis, Vector3_t *y_axis, Vector3_t *z_axis,
                                        const Vector3_t *origin_ecef, const Vector3_t *target_ecef);
-static void eci_to_local_using_axes(Vector3_t *result, const Vector3_t *r_eci,
-                                    const Vector3_t *origin_eci, const Vector3_t *x_axis, const Vector3_t *y_axis, const Vector3_t *z_axis);
-static void local_to_eci_using_axes(Vector3_t *result, const Vector3_t *v_local,
-                                    const Vector3_t *x_axis, const Vector3_t *y_axis, const Vector3_t *z_axis);
+static void ecef_to_local_using_axes(Vector3_t *result, const Vector3_t *r_ecef,
+                                     const Vector3_t *origin_ecef, const Vector3_t *x_axis, const Vector3_t *y_axis, const Vector3_t *z_axis);
+static void local_to_ecef_using_axes(Vector3_t *result, const Vector3_t *v_local,
+                                     const Vector3_t *x_axis, const Vector3_t *y_axis, const Vector3_t *z_axis);
 
 /**
  * @brief Process GNSS data with fail-safe handling
@@ -68,15 +71,15 @@ void process_gnss_data(void)
     if (systemState.testMode)
     {
         /* Copy injected data from systemState to gnss globals */
-        gnss_position_eci.x_m = systemState.position_eci.x;
-        gnss_position_eci.y_m = systemState.position_eci.y;
-        gnss_position_eci.z_m = systemState.position_eci.z;
-        gnss_position_eci.valid = true;
+        gnss_position_ecef.x_m = systemState.position_ecef.x;
+        gnss_position_ecef.y_m = systemState.position_ecef.y;
+        gnss_position_ecef.z_m = systemState.position_ecef.z;
+        gnss_position_ecef.valid = true;
 
-        gnss_velocity_eci.vx_ms = systemState.velocity_eci.x;
-        gnss_velocity_eci.vy_ms = systemState.velocity_eci.y;
-        gnss_velocity_eci.vz_ms = systemState.velocity_eci.z;
-        gnss_velocity_eci.valid = true;
+        gnss_velocity_ecef.vx_ms = systemState.velocity_ecef.x;
+        gnss_velocity_ecef.vy_ms = systemState.velocity_ecef.y;
+        gnss_velocity_ecef.vz_ms = systemState.velocity_ecef.z;
+        gnss_velocity_ecef.valid = true;
         return;
     }
 
@@ -86,20 +89,20 @@ void process_gnss_data(void)
         /* GNSS data is valid - hardware team will parse and extract ECEF data */
         /* TODO: Hardware team implements parsing from gnssDataBuffer */
 
-        gnss_position_eci.valid = true;
-        gnss_velocity_eci.valid = true;
+        gnss_position_ecef.valid = true;
+        gnss_velocity_ecef.valid = true;
 
         /* Update fail-safe variables with current valid data */
-        previous_gnss_position = gnss_position_eci;
-        previous_gnss_velocity = gnss_velocity_eci;
+        previous_gnss_position = gnss_position_ecef;
+        previous_gnss_velocity = gnss_velocity_ecef;
 
-        systemState.position_eci.x = gnss_position_eci.x_m;
-        systemState.position_eci.y = gnss_position_eci.y_m;
-        systemState.position_eci.z = gnss_position_eci.z_m;
+        systemState.position_ecef.x = gnss_position_ecef.x_m;
+        systemState.position_ecef.y = gnss_position_ecef.y_m;
+        systemState.position_ecef.z = gnss_position_ecef.z_m;
 
-        systemState.velocity_eci.x = gnss_velocity_eci.vx_ms;
-        systemState.velocity_eci.y = gnss_velocity_eci.vy_ms;
-        systemState.velocity_eci.z = gnss_velocity_eci.vz_ms;
+        systemState.velocity_ecef.x = gnss_velocity_ecef.vx_ms;
+        systemState.velocity_ecef.y = gnss_velocity_ecef.vy_ms;
+        systemState.velocity_ecef.z = gnss_velocity_ecef.vz_ms;
 
         gnss_data_valid = true;
     }
@@ -109,29 +112,29 @@ void process_gnss_data(void)
         if (gnss_data_valid)
         {
             /* Use previous valid data */
-            gnss_position_eci = previous_gnss_position;
-            gnss_velocity_eci = previous_gnss_velocity;
+            gnss_position_ecef = previous_gnss_position;
+            gnss_velocity_ecef = previous_gnss_velocity;
         }
         else
         {
             /* No previous valid data available - set invalid */
-            gnss_position_eci.valid = false;
-            gnss_velocity_eci.valid = false;
+            gnss_position_ecef.valid = false;
+            gnss_velocity_ecef.valid = false;
         }
     }
 }
 
 /**
- * @brief Process GNSS ECI data and convert to local frame
+ * @brief Process GNSS ECEF data and convert to local frame
  *
- * This function processes the GNSS ECI position and velocity data,
+ * This function processes the GNSS ECEF position and velocity data,
  * converts it to the local frame, and stores it in system state.
  * Only performs coordinate transformation - no guidance execution.
  */
-void process_gnss_eci_data(void)
+void process_gnss_ecef_data(void)
 {
     /* Check if GNSS data is valid */
-    if (!gnss_position_eci.valid || !gnss_velocity_eci.valid)
+    if (!gnss_position_ecef.valid || !gnss_velocity_ecef.valid)
     {
         /* Invalid GNSS data - cannot process */
         return;
@@ -139,17 +142,17 @@ void process_gnss_eci_data(void)
 
     /* Note: Mission data validity check removed - will be handled by guidance function */
 
-    /* Convert GNSS ECI position to Vector3_t */
-    Vector3_t eci_position;
-    eci_position.x = gnss_position_eci.x_m;
-    eci_position.y = gnss_position_eci.y_m;
-    eci_position.z = gnss_position_eci.z_m;
+    /* Convert GNSS ECEF position to Vector3_t */
+    Vector3_t ecef_position;
+    ecef_position.x = gnss_position_ecef.x_m;
+    ecef_position.y = gnss_position_ecef.y_m;
+    ecef_position.z = gnss_position_ecef.z_m;
 
-    /* Convert GNSS ECI velocity to Vector3_t */
-    Vector3_t eci_velocity;
-    eci_velocity.x = gnss_velocity_eci.vx_ms;
-    eci_velocity.y = gnss_velocity_eci.vy_ms;
-    eci_velocity.z = gnss_velocity_eci.vz_ms;
+    /* Convert GNSS ECEF velocity to Vector3_t */
+    Vector3_t ecef_velocity;
+    ecef_velocity.x = gnss_velocity_ecef.vx_ms;
+    ecef_velocity.y = gnss_velocity_ecef.vy_ms;
+    ecef_velocity.z = gnss_velocity_ecef.vz_ms;
 
     /* Build local frame axes from ECEF vectors (launch point and target already in ECEF) */
     /* Use pre-computed Local Frame Axes (Geodetic Normal) */
@@ -157,21 +160,21 @@ void process_gnss_eci_data(void)
     Vector3_t *y_axis = &local_y_axis;
     Vector3_t *z_axis = &local_z_axis;
 
-    /* Convert ECI position to Local frame */
-    eci_to_local_using_axes(&systemState.positionLocal, &eci_position, &mission_launch_point_eci, x_axis, y_axis, z_axis);
+    /* Convert ECEF position to Local frame */
+    ecef_to_local_using_axes(&systemState.positionLocal, &ecef_position, &mission_launch_point_ecef, x_axis, y_axis, z_axis);
 
-    /* Convert ECI velocity to Local frame */
+    /* Convert ECEF velocity to Local frame */
     double dot_x, dot_y, dot_z;
-    vector3_dot(&dot_x, x_axis, &eci_velocity);
-    vector3_dot(&dot_y, y_axis, &eci_velocity);
-    vector3_dot(&dot_z, z_axis, &eci_velocity);
+    vector3_dot(&dot_x, x_axis, &ecef_velocity);
+    vector3_dot(&dot_y, y_axis, &ecef_velocity);
+    vector3_dot(&dot_z, z_axis, &ecef_velocity);
     systemState.velocityLocal.x = dot_x;
     systemState.velocityLocal.y = dot_y;
     systemState.velocityLocal.z = dot_z;
 
-    /* Store ECI data for other modules */
-    systemState.position_eci = eci_position;
-    systemState.velocity_eci = eci_velocity;
+    /* Store ECEF data for other modules */
+    systemState.position_ecef = ecef_position;
+    systemState.velocity_ecef = ecef_velocity;
 
     /* Note: Coordinate transformation success/failure is stored in systemState
      * Other modules can check the validity of positionLocal and velocityLocal
@@ -194,17 +197,17 @@ void set_gnss_position_ecef(const uint8_t *buffer, uint16_t offset_x, uint16_t o
 {
     if (buffer == NULL)
     {
-        gnss_position_eci.valid = false;
+        gnss_position_ecef.valid = false;
         return;
     }
 
     /* Convert LSB values (signed int32, big-endian) to double (meters) */
     /* COMMENTED OUT - Hardware team to implement double version
-    convert_ecef_position_lsb_to_double(&gnss_position_eci.x_m, &gnss_position_eci.y_m, &gnss_position_eci.z_m,
+    convert_ecef_position_lsb_to_double(&gnss_position_ecef.x_m, &gnss_position_ecef.y_m, &gnss_position_ecef.z_m,
                                         buffer, offset_x, offset_y, offset_z);
     */
-    gnss_position_eci.valid = valid;
-    gnss_position_eci.timestamp = timestamp;
+    gnss_position_ecef.valid = valid;
+    gnss_position_ecef.timestamp = timestamp;
 }
 
 /**
@@ -222,17 +225,17 @@ void set_gnss_velocity_ecef(const uint8_t *buffer, uint16_t offset_vx, uint16_t 
 {
     if (buffer == NULL)
     {
-        gnss_velocity_eci.valid = false;
+        gnss_velocity_ecef.valid = false;
         return;
     }
 
     /* Convert LSB values (signed int32, big-endian) to double (m/s) */
     /* COMMENTED OUT - Hardware team to implement double version
-    convert_ecef_velocity_lsb_to_double(&gnss_velocity_eci.vx_ms, &gnss_velocity_eci.vy_ms, &gnss_velocity_eci.vz_ms,
+    convert_ecef_velocity_lsb_to_double(&gnss_velocity_ecef.vx_ms, &gnss_velocity_ecef.vy_ms, &gnss_velocity_ecef.vz_ms,
                                         buffer, offset_vx, offset_vy, offset_vz);
     */
-    gnss_velocity_eci.valid = valid;
-    gnss_velocity_eci.timestamp = timestamp;
+    gnss_velocity_ecef.valid = valid;
+    gnss_velocity_ecef.timestamp = timestamp;
 }
 
 /**
@@ -246,25 +249,25 @@ void set_gnss_velocity_ecef(const uint8_t *buffer, uint16_t offset_vx, uint16_t 
  */
 void set_mission_target(double x_m, double y_m, double z_m)
 {
-    mission_target_eci.x = (double)x_m;
-    mission_target_eci.y = (double)y_m;
-    mission_target_eci.z = (double)z_m;
+    mission_target_ecef.x = (double)x_m;
+    mission_target_ecef.y = (double)y_m;
+    mission_target_ecef.z = (double)z_m;
 }
 
 /**
  * @brief Set mission launch point coordinates
  *
- * This function sets the launch point coordinates for the mission in ECI frame.
+ * This function sets the launch point coordinates for the mission in ECEF frame.
  *
- * @param x_m Launch point X coordinate in ECI frame (meters)
- * @param y_m Launch point Y coordinate in ECI frame (meters)
- * @param z_m Launch point Z coordinate in ECI frame (meters)
+ * @param x_m Launch point X coordinate in ECEF frame (meters)
+ * @param y_m Launch point Y coordinate in ECEF frame (meters)
+ * @param z_m Launch point Z coordinate in ECEF frame (meters)
  */
 void set_mission_launch_point(double x_m, double y_m, double z_m)
 {
-    mission_launch_point_eci.x = (double)x_m;
-    mission_launch_point_eci.y = (double)y_m;
-    mission_launch_point_eci.z = (double)z_m;
+    mission_launch_point_ecef.x = (double)x_m;
+    mission_launch_point_ecef.y = (double)y_m;
+    mission_launch_point_ecef.z = (double)z_m;
 }
 
 /**
@@ -286,20 +289,18 @@ void set_guidance_impact_angles(double theta_f_rad, double psi_f_rad)
 void guidance_init(void)
 {
     /* Create geodetic structures for target and origin */
-    GeodeticPos_t target_geodetic;
-    target_geodetic.lat_deg = PEFCS_TARGET_LAT_DEG;
-    target_geodetic.lon_deg = PEFCS_TARGET_LON_DEG;
-    target_geodetic.alt_m = PEFCS_TARGET_ALT_M;
+    target_geodetic_stored.lat_deg = PEFCS_TARGET_LAT_DEG;
+    target_geodetic_stored.lon_deg = PEFCS_TARGET_LON_DEG;
+    target_geodetic_stored.alt_m = PEFCS_TARGET_ALT_M;
 
-    GeodeticPos_t origin_geodetic;
-    origin_geodetic.lat_deg = PEFCS_ORIGIN_LAT_DEG;
-    origin_geodetic.lon_deg = PEFCS_ORIGIN_LON_DEG;
-    origin_geodetic.alt_m = PEFCS_ORIGIN_ALT_M;
+    origin_geodetic_stored.lat_deg = PEFCS_ORIGIN_LAT_DEG;
+    origin_geodetic_stored.lon_deg = PEFCS_ORIGIN_LON_DEG;
+    origin_geodetic_stored.alt_m = PEFCS_ORIGIN_ALT_M;
 
     /* Convert to ECEF */
     Vector3_t target_ecef, origin_ecef;
-    geodetic_to_ecef(&target_ecef, &target_geodetic);
-    geodetic_to_ecef(&origin_ecef, &origin_geodetic);
+    geodetic_to_ecef(&target_ecef, &target_geodetic_stored);
+    geodetic_to_ecef(&origin_ecef, &origin_geodetic_stored);
 
     /* Set mission parameters */
     set_mission_target(target_ecef.x, target_ecef.y, target_ecef.z);
@@ -312,12 +313,8 @@ void guidance_init(void)
     set_guidance_impact_angles(theta_f_rad, psi_f_rad);
 
     /* Build Local Frame Axes using Geodetic Normal (matches reference implementation) */
-    /* Note: We use the function from math_utils.c (via header) which handles geodetic perturbation correctly */
-    /* We cannot verify build_local_axes directly here as it is static in math_utils.c, 
-       so we manually replicate the "build_local_axes" logic found in reference */
-
     Vector3_t perturb_ecef;
-    GeodeticPos_t perturb_origin = origin_geodetic;
+    GeodeticPos_t perturb_origin = origin_geodetic_stored;
     perturb_origin.alt_m += 1.0; /* +1 m for surface normal */
 
     geodetic_to_ecef(&perturb_ecef, &perturb_origin);
@@ -345,13 +342,13 @@ void guidance_init(void)
  */
 
 /**
- * @brief Convert ECI to local frame using pre-built axes
+ * @brief Convert ECEF to local frame using pre-built axes
  */
-static void eci_to_local_using_axes(Vector3_t *result, const Vector3_t *r_eci,
-                                    const Vector3_t *origin_eci, const Vector3_t *x_axis, const Vector3_t *y_axis, const Vector3_t *z_axis)
+static void ecef_to_local_using_axes(Vector3_t *result, const Vector3_t *r_ecef,
+                                     const Vector3_t *origin_ecef, const Vector3_t *x_axis, const Vector3_t *y_axis, const Vector3_t *z_axis)
 {
     Vector3_t rel;
-    vector3_subtract(&rel, r_eci, origin_eci);
+    vector3_subtract(&rel, r_ecef, origin_ecef);
 
     double dot_x, dot_y, dot_z;
     vector3_dot(&dot_x, x_axis, &rel);
@@ -363,12 +360,15 @@ static void eci_to_local_using_axes(Vector3_t *result, const Vector3_t *r_eci,
     result->z = dot_z;
 }
 
-//Eventhough the variables are named ECEF, they are treated as ECI (Inertial) frame by guidance logic.
-//This is a known naming convention idiosyncrasy. Algorithms assume ECI inputs. - Ananthu Dev - Flight Software Engineer / Project Engineer
+/**
+ * @brief Calculate guidance acceleration command (ECI-based)
+ *
+ * Implements Proportional Navigation (PN) + Impact Angle Control (IAC)
+ * Updated to use ECEF → ECI → Local frame flow with GPS time.
+ */
 void calculate_guidance_acceleration(Vector3_t *accel_body,
-                                     const Vector3_t *position_eci, const Vector3_t *velocity_eci,
-                                     const Vector3_t *origin_eci, const Vector3_t *target_eci,
-                                     double theta_f, double psi_f, double theta, double psi, double phi)
+                                     const Vector3_t *position_ecef, const Vector3_t *velocity_ecef,
+                                     int gnss_week, double tow)
 {
     /* Check if guidance start flag is set by sequencer */
     if (!systemState.flags.guidStartFlag)
@@ -381,27 +381,23 @@ void calculate_guidance_acceleration(Vector3_t *accel_body,
         return;
     }
 
-    /* Use pre-computed Local Frame Axes (Geodetic Normal) */
-    Vector3_t *x_axis = &local_x_axis;
-    Vector3_t *y_axis = &local_y_axis;
-    Vector3_t *z_axis = &local_z_axis;
+    /* === STEP 1: ECEF to ECI Conversion === */
+    Vector3_t r_m_eci, v_m_eci;
+    ecef_to_eci(&r_m_eci, &v_m_eci, position_ecef, velocity_ecef,
+                gnss_week, tow, PEFCS_GPS_LEAP_SECONDS);
 
-    /* Convert projectile ECEF to local frame */
+    /* === STEP 2: Target ECI position (stationary, so ECEF ≈ ECI) === */
+    Vector3_t r_t_eci;
+    geodetic_to_ecef(&r_t_eci, &target_geodetic_stored);
+
+    /* === STEP 3: ECI to Local Frame Conversion === */
     Vector3_t r_m_local, v_m_local;
-    eci_to_local_using_axes(&r_m_local, position_eci, origin_eci, x_axis, y_axis, z_axis);
+    eci_to_local_pos(&r_m_local, &r_m_eci, &origin_geodetic_stored, &target_geodetic_stored);
+    eci_to_local_vel(&v_m_local, &v_m_eci, &origin_geodetic_stored, &target_geodetic_stored);
 
-    /* Convert velocity to local frame */
-    double dot_x, dot_y, dot_z;
-    vector3_dot(&dot_x, x_axis, velocity_eci);
-    vector3_dot(&dot_y, y_axis, velocity_eci);
-    vector3_dot(&dot_z, z_axis, velocity_eci);
-    v_m_local.x = dot_x;
-    v_m_local.y = dot_y;
-    v_m_local.z = dot_z;
-
-    /* Convert target to local frame */
+    /* Convert target ECI to Local frame */
     Vector3_t r_t_local;
-    eci_to_local_using_axes(&r_t_local, target_eci, origin_eci, x_axis, y_axis, z_axis);
+    eci_to_local_pos(&r_t_local, &r_t_eci, &origin_geodetic_stored, &target_geodetic_stored);
 
     /* Vector to target FROM projectile */
     Vector3_t r_vec;
@@ -517,10 +513,10 @@ void calculate_guidance_acceleration(Vector3_t *accel_body,
 
     /* Desired impact direction */
     Vector3_t e_f;
-    double sin_theta_f = sin(theta_f);
-    double cos_theta_f = cos(theta_f);
-    double sin_psi_f = sin(psi_f);
-    double cos_psi_f = cos(psi_f);
+    double sin_theta_f = sin(guidance_theta_f);
+    double cos_theta_f = cos(guidance_theta_f);
+    double sin_psi_f = sin(guidance_psi_f);
+    double cos_psi_f = cos(guidance_psi_f);
     e_f.x = cos_theta_f * cos_psi_f; /* North (matches reference guidance.c) */
     e_f.y = cos_theta_f * sin_psi_f; /* East */
     e_f.z = sin_theta_f;             /* Up */
@@ -597,6 +593,12 @@ void calculate_guidance_acceleration(Vector3_t *accel_body,
 
     /* Calculate Mach number */
     double mach = v / speed_of_sound;
+
+    /* === COMPUTE THETA AND PSI FROM LOCAL VELOCITY === */
+    /* Calculate current theta (pitch) and psi (yaw) from velocity direction */
+    double theta = asin(v_m_local.z / v);
+    double psi = atan2(v_m_local.y, v_m_local.x);
+    double phi = 0.0; /* Roll assumed zero for guidance */
 
     /* === LOCAL TO BODY FRAME TRANSFORMATION === */
     /* Convert acceleration command to body frame using updated local_to_body */
@@ -675,34 +677,27 @@ void major_cycle(void)
     /* Step 1: Process GNSS data with fail-safe handling */
     process_gnss_data();
 
-    /* Step 2: Process GNSS ECI data and convert to local frame */
-    process_gnss_eci_data();
+    /* Step 2: Process GNSS ECEF data and convert to local frame */
+    process_gnss_ecef_data();
 
     /* Step 3: Execute guidance algorithm */
-    if (gnss_position_eci.valid && gnss_velocity_eci.valid && systemState.flags.guidStartFlag)
+    if (gnss_position_ecef.valid && gnss_velocity_ecef.valid && systemState.flags.guidStartFlag)
     {
-        Vector3_t position_eci;
-        position_eci.x = gnss_position_eci.x_m;
-        position_eci.y = gnss_position_eci.y_m;
-        position_eci.z = gnss_position_eci.z_m;
+        Vector3_t position_ecef;
+        position_ecef.x = gnss_position_ecef.x_m;
+        position_ecef.y = gnss_position_ecef.y_m;
+        position_ecef.z = gnss_position_ecef.z_m;
 
-        Vector3_t velocity_eci;
-        velocity_eci.x = gnss_velocity_eci.vx_ms;
-        velocity_eci.y = gnss_velocity_eci.vy_ms;
-        velocity_eci.z = gnss_velocity_eci.vz_ms;
+        Vector3_t velocity_ecef;
+        velocity_ecef.x = gnss_velocity_ecef.vx_ms;
+        velocity_ecef.y = gnss_velocity_ecef.vy_ms;
+        velocity_ecef.z = gnss_velocity_ecef.vz_ms;
 
-        /* Calculate guidance acceleration */
+        /* Calculate guidance acceleration using GPS time for ECEF→ECI conversion */
         GuidanceState_t *guidState = &systemState.guidanceState;
-        /* Get Euler angles from navigation state for body frame transformation */
-        double theta = systemState.navigationState.attitude_e.pitch_rad;
-        double psi = systemState.navigationState.attitude_e.yaw_rad;
-        double phi = systemState.navigationState.attitude_e.roll_rad;
-
-        /* Launch point and target are already stored as ECI vectors */
         calculate_guidance_acceleration(&guidState->accelCmdBody,
-                                        &position_eci, &velocity_eci,
-                                        &mission_launch_point_eci, &mission_target_eci,
-                                        guidance_theta_f, guidance_psi_f, theta, psi, phi);
+                                        &position_ecef, &velocity_ecef,
+                                        systemState.gps_week, systemState.gps_tow);
     }
 
     /* Increment major cycle counter */

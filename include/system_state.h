@@ -124,11 +124,15 @@ typedef struct
         bool proximitySensorFlag;
     } flags;
 
-    // ECI frames from GNSS (renamed from ECEF)
-    Vector3_t position_eci;
-    Vector3_t velocity_eci;
+    // ECEF frames from GNSS
+    Vector3_t position_ecef;
+    Vector3_t velocity_ecef;
     Vector3_t positionLocal;
     Vector3_t velocityLocal;
+
+    // GPS Time data (from GNSS)
+    int gps_week;   /* GPS week number */
+    double gps_tow; /* GPS time of week (seconds) */
 
     // Sensor inputs
     double rollRateFp;

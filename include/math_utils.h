@@ -63,6 +63,10 @@ typedef struct
 #define WGS84_FLATTENING (1.0 / 298.257223563)                                               // Earth's flattening
 #define WGS84_ECCENTRICITY_SQ (2.0 * WGS84_FLATTENING - WGS84_FLATTENING * WGS84_FLATTENING) // Square of eccentricity
 
+// GPS Time and ECI Conversion constants
+#define OMEGA_EARTH 7.2921150e-5 /* Earth rotation rate [rad/s] */
+#define GPS_EPOCH_JD 2444244.5   /* Julian Date of GPS Epoch (1980-01-06 00:00:00 UTC) */
+
 // ===== Vector3 Operations =====
 void vector3_add(Vector3_t *result, const Vector3_t *v1, const Vector3_t *v2);
 void vector3_subtract(Vector3_t *result, const Vector3_t *v1, const Vector3_t *v2);
@@ -80,12 +84,12 @@ void quaternion_to_rotation_matrix(double *matrix, const Quaternion_t *q);
 // ===== Coordinate Transformations =====
 // ECEF transformations (for GNSS input)
 void geodetic_to_ecef(Vector3_t *result, const GeodeticPos_t *pos);
-void eci_to_local(Vector3_t *result, const Vector3_t *r_eci,
-                  const GeodeticPos_t *launch, const GeodeticPos_t *target);
+void ecef_to_local(Vector3_t *result, const Vector3_t *r_ecef,
+                   const GeodeticPos_t *launch, const GeodeticPos_t *target);
 void local_to_ecef_vel(Vector3_t *result, const Vector3_t *v_local,
                        const GeodeticPos_t *launch, const GeodeticPos_t *target);
-void eci_to_local_vel(Vector3_t *result, const Vector3_t *v_eci,
-                      const GeodeticPos_t *launch, const GeodeticPos_t *target);
+void ecef_to_local_vel(Vector3_t *result, const Vector3_t *v_ecef,
+                       const GeodeticPos_t *launch, const GeodeticPos_t *target);
 
 // Local to Body frame transformation (for guidance to DAP interface)
 void local_to_body(Vector3_t *result, const Vector3_t *v_local,
@@ -127,5 +131,56 @@ void double_equals(bool *result, double a, double b, double epsilon);
  * @return Correct modulo result for positive and negative values
  */
 void mod_double(double *result, double a, double d);
+
+// ===== ECEF to ECI Conversion (GPS Time Based) =====
+/**
+ * @brief Convert GPS week and TOW to Julian Date
+ * @param jd Output Julian Date
+ * @param gnss_week GPS week number
+ * @param tow Time of Week in seconds
+ * @param leap_seconds Leap seconds offset (GPS - UTC)
+ */
+void gps_to_julian_date(double *jd, int gnss_week, double tow, int leap_seconds);
+
+/**
+ * @brief Convert Julian Date to GMST (Greenwich Mean Sidereal Time)
+ * @param gmst_rad Output GMST in radians
+ * @param jd Julian Date
+ */
+void julian_date_to_gmst_rad(double *gmst_rad, double jd);
+
+/**
+ * @brief Convert ECEF position and velocity to ECI frame
+ * @param r_eci Output ECI position
+ * @param v_eci Output ECI velocity
+ * @param r_ecef Input ECEF position
+ * @param v_ecef Input ECEF velocity
+ * @param gnss_week GPS week number
+ * @param tow Time of Week in seconds
+ * @param leap_seconds Leap seconds offset
+ */
+void ecef_to_eci(Vector3_t *r_eci, Vector3_t *v_eci,
+                 const Vector3_t *r_ecef, const Vector3_t *v_ecef,
+                 int gnss_week, double tow, int leap_seconds);
+
+/**
+ * @brief Convert ECI position to Local frame
+ * @param r_local Output position in Local frame
+ * @param r_eci Input ECI position
+ * @param launch Launch point geodetic position
+ * @param target Target geodetic position
+ */
+void eci_to_local_pos(Vector3_t *r_local, const Vector3_t *r_eci,
+                      const GeodeticPos_t *launch, const GeodeticPos_t *target);
+
+/**
+ * @brief Convert ECI velocity to Local frame (no origin subtraction)
+ * @param v_local Output velocity in Local frame
+ * @param v_eci Input ECI velocity
+ * @param launch Launch point geodetic position
+ * @param target Target geodetic position
+ */
+void eci_to_local_vel(Vector3_t *v_local, const Vector3_t *v_eci,
+                      const GeodeticPos_t *launch, const GeodeticPos_t *target);
 
 #endif /* MATH_UTILS_H */

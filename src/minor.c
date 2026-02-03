@@ -1677,7 +1677,7 @@ static void execute_dap(double dt_s)
     PYOutput_t deltap = {0.0, 0.0};
     PYOutput_t deltay = {0.0, 0.0};
 
-    if (rollRate > 0.01)
+    if (systemState.rollRateFp > 0.01)
     {
         /* Roll rate is non-zero - use roll control */
         deltar = compute_delta_roll_command(rollAngle, rollRate, dapParams, dt_s);

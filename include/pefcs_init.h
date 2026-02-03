@@ -85,8 +85,8 @@
  * Target for 20 km range mission (Sea)
  * Reference: test/guidance_updated_clamp/guidance_test.c
  */
-#define PEFCS_TARGET_LAT_DEG 8.50853578598926
-#define PEFCS_TARGET_LON_DEG 76.70458281218454
+#define PEFCS_TARGET_LAT_DEG 8.67176
+#define PEFCS_TARGET_LON_DEG 76.8854
 #define PEFCS_TARGET_ALT_M 0.0
 
 /**
@@ -95,8 +95,8 @@
  * Reference point for local coordinate transformations
  * Reference: test/guidance_updated_clamp/guidance_test.c
  */
-#define PEFCS_ORIGIN_LAT_DEG 8.67176
-#define PEFCS_ORIGIN_LON_DEG 76.8854
+#define PEFCS_ORIGIN_LAT_DEG 8.529175797045042
+#define PEFCS_ORIGIN_LON_DEG 76.88543289537785
 #define PEFCS_ORIGIN_ALT_M 0.0
 
 /**
@@ -108,6 +108,15 @@
  */
 #define PEFCS_IMPACT_THETA_F_DEG -65.0
 #define PEFCS_IMPACT_PSI_F_DEG 0.0
+
+/**
+ * @brief GPS-UTC leap seconds offset
+ * 
+ * Number of leap seconds between GPS time and UTC time.
+ * Used for ECEF→ECI coordinate transformations.
+ * Valid as of 2017-01-01 (update if leap second is added)
+ */
+#define PEFCS_GPS_LEAP_SECONDS 18
 
 /* ===== DAP (DIGITAL AUTOPILOT) INITIALIZATION PARAMETERS ===== */
 

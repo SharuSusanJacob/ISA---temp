@@ -178,13 +178,13 @@ static void build_local_axes(Vector3_t *x_axis, Vector3_t *y_axis, Vector3_t *z_
 }
 
 /**
- * @brief Convert ECI coordinates to Local Frame
+ * @brief Convert ECEF coordinates to Local Frame
  * @param result Output Position in Local Frame (meters)
- * @param r_eci Input ECI position vector
+ * @param r_ecef Input ECEF position vector
  * @param launch Launch point geodetic position
  * @param target Target Geodetic position
  */
-void eci_to_local(Vector3_t *result, const Vector3_t *r_eci, const GeodeticPos_t *launch, const GeodeticPos_t *target)
+void ecef_to_local(Vector3_t *result, const Vector3_t *r_ecef, const GeodeticPos_t *launch, const GeodeticPos_t *target)
 {
     Vector3_t x_axis, y_axis, z_axis;
     build_local_axes(&x_axis, &y_axis, &z_axis, launch, target);
@@ -193,7 +193,7 @@ void eci_to_local(Vector3_t *result, const Vector3_t *r_eci, const GeodeticPos_t
     geodetic_to_ecef(&launch_ecef, launch);
 
     Vector3_t rel;
-    vector3_subtract(&rel, r_eci, &launch_ecef);
+    vector3_subtract(&rel, r_ecef, &launch_ecef);
 
     double dot_x, dot_y, dot_z;
     vector3_dot(&dot_x, &x_axis, &rel);
@@ -224,22 +224,22 @@ void local_to_ecef_vel(Vector3_t *result, const Vector3_t *v_local, const Geodet
 }
 
 /**
- * @brief Convert ECI frame velocity to Local frame
+ * @brief Convert ECEF frame velocity to Local frame
  * @param result Output velocity in Local frame
- * @param v_eci Input velocity in ECI frame
+ * @param v_ecef Input velocity in ECEF frame
  * @param launch Launch point geodetic position
  * @param target Target point geodetic position
  */
-void eci_to_local_vel(Vector3_t *result, const Vector3_t *v_eci, const GeodeticPos_t *launch, const GeodeticPos_t *target)
+void ecef_to_local_vel(Vector3_t *result, const Vector3_t *v_ecef, const GeodeticPos_t *launch, const GeodeticPos_t *target)
 {
     Vector3_t x_axis, y_axis, z_axis;
     build_local_axes(&x_axis, &y_axis, &z_axis, launch, target);
 
     /* Matrix multiplication R_ECEF->Local (transpose of basis vectors) */
     double dot_x, dot_y, dot_z;
-    vector3_dot(&dot_x, &x_axis, v_eci);
-    vector3_dot(&dot_y, &y_axis, v_eci);
-    vector3_dot(&dot_z, &z_axis, v_eci);
+    vector3_dot(&dot_x, &x_axis, v_ecef);
+    vector3_dot(&dot_y, &y_axis, v_ecef);
+    vector3_dot(&dot_z, &z_axis, v_ecef);
 
     result->x = dot_x;
     result->y = dot_y;
@@ -557,4 +557,161 @@ void math_pitch_limit(double *result, double mach, double pitch_acceleration)
     }
 
     *result = output_acc;
+}
+
+// ===== ECEF to ECI Conversion (GPS Time Based) =====
+
+/**
+ * @brief Convert GPS week and TOW to Julian Date
+ * Port of MATLAB ECEF_to_ECI_NAV.m logic
+ */
+void gps_to_julian_date(double *jd, int gnss_week, double tow, int leap_seconds)
+{
+    /* GPS epoch: 1980-01-06 00:00:00 UTC */
+    /* Julian Date of GPS epoch = 2444244.5 */
+    double gps_seconds = (double)gnss_week * 7.0 * 86400.0 + tow;
+    double utc_seconds = gps_seconds - (double)leap_seconds;
+
+    /* Convert UTC seconds since GPS epoch to Julian Date */
+    *jd = GPS_EPOCH_JD + utc_seconds / 86400.0;
+}
+
+/**
+ * @brief Convert Julian Date to GMST (Greenwich Mean Sidereal Time)
+ * Port of MATLAB ECEF_to_ECI_NAV.m logic
+ */
+void julian_date_to_gmst_rad(double *gmst_rad, double jd)
+{
+    double t = (jd - 2451545.0) / 36525.0;
+    double gmst_deg = 280.46061837 + 360.98564736629 * (jd - 2451545.0) +
+                      t * t * (0.000387933 - t) / 38710000.0;
+
+    /* Normalize to [0, 360) degrees */
+    gmst_deg = fmod(gmst_deg, 360.0);
+    if (gmst_deg < 0.0)
+    {
+        gmst_deg += 360.0;
+    }
+
+    /* Convert to radians */
+    deg_to_rad(gmst_rad, gmst_deg);
+}
+
+/**
+ * @brief Convert ECEF position and velocity to ECI frame
+ * Port of MATLAB ECEF_to_ECI_NAV.m
+ */
+void ecef_to_eci(Vector3_t *r_eci, Vector3_t *v_eci,
+                 const Vector3_t *r_ecef, const Vector3_t *v_ecef,
+                 int gnss_week, double tow, int leap_seconds)
+{
+    /* Step 1: Compute Julian Date from GPS time */
+    double jd;
+    gps_to_julian_date(&jd, gnss_week, tow, leap_seconds);
+
+    /* Step 2: Compute GMST (Local Sidereal Time at longitude=0) */
+    double lst_rad;
+    julian_date_to_gmst_rad(&lst_rad, jd);
+
+    /* Step 3: Build rotation matrix R_ecef2eci */
+    double cos_lst, sin_lst;
+    safe_cos(&cos_lst, lst_rad);
+    safe_sin(&sin_lst, lst_rad);
+
+    /* R_ecef2eci = [cos(LST), -sin(LST), 0;
+                     sin(LST),  cos(LST), 0;
+                     0,         0,        1] */
+
+    /* Step 4: r_ECI = R_ecef2eci * r_ECEF */
+    r_eci->x = cos_lst * r_ecef->x - sin_lst * r_ecef->y;
+    r_eci->y = sin_lst * r_ecef->x + cos_lst * r_ecef->y;
+    r_eci->z = r_ecef->z;
+
+    /* Step 5: v_ECI = R_ecef2eci * v_ECEF + omega_vec x r_ECI */
+    /* omega_vec = [0; 0; omega_earth] */
+    /* cross([0;0;w], [x;y;z]) = [-w*y; w*x; 0] */
+    double v_rot_x = cos_lst * v_ecef->x - sin_lst * v_ecef->y;
+    double v_rot_y = sin_lst * v_ecef->x + cos_lst * v_ecef->y;
+    double v_rot_z = v_ecef->z;
+
+    v_eci->x = v_rot_x + (-OMEGA_EARTH * r_eci->y);
+    v_eci->y = v_rot_y + (OMEGA_EARTH * r_eci->x);
+    v_eci->z = v_rot_z;
+}
+
+/**
+ * @brief Build local frame axes from geodetic positions
+ * Helper function for ECI to Local conversion
+ */
+static void build_local_axes_geodetic(Vector3_t *x_axis, Vector3_t *y_axis, Vector3_t *z_axis,
+                                      const GeodeticPos_t *launch, const GeodeticPos_t *target)
+{
+    Vector3_t launch_ecef, target_ecef, perturb_ecef;
+    GeodeticPos_t perturb_launch = *launch;
+    perturb_launch.alt_m += 1.0; /* +1 m for surface normal */
+
+    geodetic_to_ecef(&launch_ecef, launch);
+    geodetic_to_ecef(&target_ecef, target);
+    geodetic_to_ecef(&perturb_ecef, &perturb_launch);
+
+    /* z axis - surface normal */
+    vector3_subtract(z_axis, &perturb_ecef, &launch_ecef);
+    vector3_normalize(z_axis, z_axis);
+
+    /* x axis - from launch to target */
+    vector3_subtract(x_axis, &target_ecef, &launch_ecef);
+    vector3_normalize(x_axis, x_axis);
+
+    /* y axis - completes right-handed system */
+    vector3_cross(y_axis, z_axis, x_axis);
+    vector3_normalize(y_axis, y_axis);
+}
+
+/**
+ * @brief Convert ECI position to Local frame
+ * Port of MATLAB ECI_to_Local.m
+ * Note: Assumes ECI ≈ ECEF for the rotation matrix definition
+ */
+void eci_to_local_pos(Vector3_t *r_local, const Vector3_t *r_eci,
+                      const GeodeticPos_t *launch, const GeodeticPos_t *target)
+{
+    Vector3_t x_axis, y_axis, z_axis;
+    build_local_axes_geodetic(&x_axis, &y_axis, &z_axis, launch, target);
+
+    Vector3_t launch_ecef;
+    geodetic_to_ecef(&launch_ecef, launch);
+
+    /* MATLAB: vec_local = R_ECI_to_Local * (vec_eci - [x_O; y_O; z_O]) */
+    Vector3_t rel;
+    vector3_subtract(&rel, r_eci, &launch_ecef);
+
+    double dot_x, dot_y, dot_z;
+    vector3_dot(&dot_x, &x_axis, &rel);
+    vector3_dot(&dot_y, &y_axis, &rel);
+    vector3_dot(&dot_z, &z_axis, &rel);
+
+    r_local->x = dot_x;
+    r_local->y = dot_y;
+    r_local->z = dot_z;
+}
+
+/**
+ * @brief Convert ECI velocity to Local frame (no origin subtraction)
+ * Port of MATLAB ECI_to_Local_vel.m
+ */
+void eci_to_local_vel(Vector3_t *v_local, const Vector3_t *v_eci,
+                      const GeodeticPos_t *launch, const GeodeticPos_t *target)
+{
+    Vector3_t x_axis, y_axis, z_axis;
+    build_local_axes_geodetic(&x_axis, &y_axis, &z_axis, launch, target);
+
+    /* MATLAB: vec_local = R_ECI_to_Local * vec_eci (no origin subtraction) */
+    double dot_x, dot_y, dot_z;
+    vector3_dot(&dot_x, &x_axis, v_eci);
+    vector3_dot(&dot_y, &y_axis, v_eci);
+    vector3_dot(&dot_z, &z_axis, v_eci);
+
+    v_local->x = dot_x;
+    v_local->y = dot_y;
+    v_local->z = dot_z;
 }
