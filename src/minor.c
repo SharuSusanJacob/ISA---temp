@@ -1409,23 +1409,6 @@ static double lag_out_yaw = 0.0;
 static double psi = 0.0;
 static double yawIntegrator = 0.0;
 
-/* INTERNAL CONSTANTS (Limits hardcoded per request) */
-/* Roll controller constants */
-static const double integratorR_min_rad = -0.1745; /* Integrator min limit in radians */
-static const double integratorR_max_rad = 0.1745;  /* Integrator max limit in radians */
-static const double phi_min_rad = -0.014677;       /* Roll angle min limit in radians */
-static const double phi_max_rad = 0.014677;        /* Roll angle max limit in radians */
-/* Pitch controller constants */
-static const double theta_min_rad = -0.014677;      /* Pitch angle min limit in radians */
-static const double theta_max_rad = 0.014677;       /* Pitch angle max limit in radians */
-static const double integratorP_min_rad = -0.08726; /* Integrator min limit in radians */
-static const double integratorP_max_rad = 0.08726;  /* Integrator max limit in radians */
-/* Yaw controller constants */
-static const double psi_min_rad = -0.014677;        /* Yaw angle min limit in radians */
-static const double psi_max_rad = 0.014677;         /* Yaw angle max limit in radians */
-static const double integratorY_min_rad = -0.08726; /* Integrator min limit in radians */
-static const double integratorY_max_rad = 0.08726;  /* Integrator max limit in radians */
-
 /**
  * @brief Compute roll control command
  *
